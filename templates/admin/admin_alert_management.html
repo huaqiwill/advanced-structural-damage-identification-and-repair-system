@@ -1,0 +1,1212 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}水面无垃圾检测警报 - 结构损伤的高级识别和绘图{% endblock %}
+
+{% block extra_css %}
+<style>
+    .alert-section {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .stats-section {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .history-section {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .slider-container {
+        margin-top: 30px;
+        margin-bottom: 20px;
+    }
+    
+    .slider-value {
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .slider-description {
+        color: #6c757d;
+        margin-top: 10px;
+    }
+    
+    .save-btn {
+        width: 100%;
+        padding: 10px;
+        font-weight: 500;
+        margin-top: 20px;
+    }
+    
+    .stats-card {
+        text-align: center;
+        padding: 15px;
+        border-radius: 8px;
+    }
+    
+    .stats-card .number {
+        font-size: 3rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stats-card .label {
+        color: #6c757d;
+        font-size: 1rem;
+    }
+    
+    .stats-card-primary .number {
+        color: #dc3545;
+    }
+    
+    .stats-card-secondary .number {
+        color: #0d6efd;
+    }
+    
+    .chart-container {
+        height: 300px;
+        margin-top: 20px;
+    }
+    
+    .tip-box {
+        background-color: #e7f5ff;
+        border-left: 4px solid #0d6efd;
+        padding: 10px 15px;
+        margin-top: 20px;
+        border-radius: 4px;
+    }
+    
+    .history-table th {
+        font-weight: 600;
+        background-color: #f8f9fa;
+    }
+    
+    .history-empty {
+        text-align: center;
+        padding: 30px;
+        color: #6c757d;
+    }
+    
+    .history-empty i {
+        font-size: 3rem;
+        margin-bottom: 15px;
+        color: #adb5bd;
+    }
+    
+    .badge-high {
+        background-color: #dc3545;
+    }
+    
+    .badge-medium {
+        background-color: #fd7e14;
+    }
+    
+    .badge-low {
+        background-color: #0dcaf0;
+    }
+    
+    #main-content{
+        margin-top: 60px;
+    }
+    
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .status-badge {
+        width: 80px;
+        text-align: center;
+    }
+    
+    /* 垃圾坐标表格样式 */
+    #coordinatesContainer {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
+    }
+    
+    #coordinatesContainer h6 {
+        color: #495057;
+        font-weight: 600;
+    }
+    
+    #coordinatesTableBody tr:hover {
+        background-color: rgba(25, 135, 84, 0.1);
+    }
+    
+    #coordinatesTableBody td {
+        vertical-align: middle;
+        padding: 6px 10px;
+        font-size: 0.9rem;
+    }
+    
+    @media (max-width: 768px) {
+        .stats-section {
+            margin-top: 20px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 引入侧边栏 -->
+{% include "admin/admin_base_sider.html" %}
+
+<!-- 主内容区 -->
+<div class="main-with-sidebar" id="main-content">
+    <div class="mt-4 px-3">
+        <div class="page-header">
+            <h2 class="mb-0">水面检测警报</h2>
+            <div>
+                <button class="btn btn-outline-secondary me-2" id="refreshBtn">
+                    <i class="fas fa-sync-alt me-1"></i> 刷新
+                </button>
+                <!-- 注释掉测试警报按钮
+                <button class="btn btn-danger" id="testAlertBtn">
+                    <i class="fas fa-bell me-1"></i> 测试警报
+                </button>
+                -->
+            </div>
+        </div>
+        
+        <div class="row">
+            <!-- 注释掉左侧警报设置模块 -->
+            <!--
+            <div class="col-md-6">
+                <div class="alert-section">
+                    <h5 class="mb-3">警报设置</h5>
+                    
+                    <div class="slider-container">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label for="confidenceSlider" class="form-label mb-0">检测灵敏度阈值</label>
+                            <span class="slider-value" id="confidenceValue">80%</span>
+                        </div>
+                        <input type="range" class="form-range" id="confidenceSlider" min="50" max="99" value="80">
+                        <div class="slider-description">
+                            调整检测灵敏度，设置过高可能导致误检测
+                        </div>
+                    </div>
+                    
+                    <div class="form-check form-switch mb-3 mt-4">
+                        <input class="form-check-input" type="checkbox" id="emailAlertSwitch" checked>
+                        <label class="form-check-label" for="emailAlertSwitch">启用邮件通知</label>
+                    </div>
+                    
+                    <div class="mb-3" id="emailSettingsContainer">
+                        <label for="emailInput" class="form-label">通知邮箱</label>
+                        <input type="email" class="form-control" id="emailInput" placeholder="例如: admin@example.com" value="admin@example.com">
+                        <div class="form-text">多个邮箱请用逗号分隔</div>
+                    </div>
+                    
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="smsAlertSwitch">
+                        <label class="form-check-label" for="smsAlertSwitch">启用短信通知</label>
+                    </div>
+                    
+                    <div class="mb-3 d-none" id="smsSettingsContainer">
+                        <label for="phoneInput" class="form-label">通知手机号</label>
+                        <input type="tel" class="form-control" id="phoneInput" placeholder="例如: 13800138000">
+                        <div class="form-text">多个手机号请用逗号分隔</div>
+                    </div>
+                    
+                    <button class="btn btn-primary save-btn" id="saveSettingsBtn">
+                        <i class="fas fa-save me-2"></i> 保存设置
+                    </button>
+                    
+                    <div class="alert alert-success mt-3 d-none" id="saveSuccess">
+                        <i class="fas fa-check-circle me-2"></i>
+                        设置已成功保存
+                    </div>
+                </div>
+            </div>
+            -->
+            
+            <!-- 右侧警报统计 -->
+            <div class="col-12">
+                <div class="stats-section">
+                    <h5 class="mb-3">垃圾检测统计</h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="stats-card stats-card-primary">
+                                <div class="number" id="totalAlerts">0</div>
+                                <div class="label">总警报数</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="stats-card stats-card-secondary">
+                                <div class="number" id="todayAlerts">0</div>
+                                <div class="label">今日警报</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <canvas id="alertsChart"></canvas>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-12 mb-3">
+                            <div class="alert alert-primary text-center">
+                                <h6 class="mb-1">图片检测</h6>
+                                <h4 class="mb-0" id="imageCount">0</h4>
+                            </div>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <div class="alert alert-info text-center">
+                                <h6 class="mb-1">视频检测</h6>
+                                <h4 class="mb-0" id="videoCount">0</h4>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="alert alert-success text-center">
+                                <h6 class="mb-1">批量检测</h6>
+                                <h4 class="mb-0" id="multiImageCount">0</h4>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <i class="fas fa-info-circle me-2"></i>
+                        当系统检测到垃圾时自动创建警报，以便及时处理可能的污染水面区域。
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 历史警报独占一行 -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="history-section">
+                    <h5 class="mb-3">垃圾检测记录</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover history-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>检测类型</th>
+                                    <th>文件名</th>
+                                    <th>检测时间</th>
+                                    <th>清理状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="alertHistoryTable">
+                                <!-- 数据将通过JavaScript动态加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <button class="btn btn-sm btn-outline-secondary" id="exportBtn">
+                            <i class="fas fa-download me-1"></i> 导出记录
+                        </button>
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination pagination-sm mb-0" id="alertPagination">
+                                <!-- 分页将通过JavaScript动态生成 -->
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 注释掉警报测试成功模态框 -->
+<!--
+<div class="modal fade" id="alertTestModal" tabindex="-1" aria-labelledby="alertTestModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="alertTestModalLabel">测试警报</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-success mb-0">
+                    <i class="fas fa-check-circle me-2"></i>
+                    测试警报已成功发送！请检查您的邮箱或手机。
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+-->
+
+<!-- 警报详情模态框 -->
+<div class="modal fade" id="alertDetailModal" tabindex="-1" aria-labelledby="alertDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="alertDetailModalLabel">检测详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>原始媒体</h6>
+                        <div id="originalMediaContainer">
+                            <!-- 这里将根据媒体类型动态插入图片或视频元素 -->
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>检测结果</h6>
+                        <div id="resultMediaContainer">
+                            <!-- 这里将根据媒体类型动态插入图片或视频元素 -->
+                        </div>
+                    </div>
+                </div>
+                <div class="alert alert-info" id="detectionResultContainer">
+                    <strong>检测结果：</strong> <span id="detectionResultText">未检测到垃圾 (total_objects = 0)</span>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <p><strong>检测ID：</strong> <span id="detailId"></span></p>
+                        <p><strong>文件名：</strong> <span id="detailFilename"></span></p>
+                        <p><strong>检测类型：</strong> <span id="detailType"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>检测时间：</strong> <span id="detailTimestamp"></span></p>
+                        <p><strong>处理状态：</strong> <span id="detailStatus"></span></p>
+                        <p><strong>处理耗时：</strong> <span id="detailDuration"></span> 秒</p>
+                    </div>
+                </div>
+                
+                <!-- 新增：垃圾坐标信息 -->
+                <div id="coordinatesContainer" style="display: none;" class="mt-4">
+                    <h6 class="border-bottom pb-2 mb-3">垃圾坐标信息</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>垃圾类型</th>
+                                    <th>置信度</th>
+                                    <th>坐标 (左上角)</th>
+                                    <th>坐标 (右下角)</th>
+                                    <th>尺寸 (宽×高)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="coordinatesTableBody">
+                                <!-- 坐标数据将通过JavaScript动态添加 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" id="markAsCleanedBtn">标记为已清理</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 高亮当前导航项
+        highlightCurrentNavItem();
+        
+        // 获取DOM元素
+        // 注释掉警报设置相关代码
+        /*
+        const confidenceSlider = document.getElementById('confidenceSlider');
+        const confidenceValue = document.getElementById('confidenceValue');
+        const emailAlertSwitch = document.getElementById('emailAlertSwitch');
+        const smsAlertSwitch = document.getElementById('smsAlertSwitch');
+        const emailSettingsContainer = document.getElementById('emailSettingsContainer');
+        const smsSettingsContainer = document.getElementById('smsSettingsContainer');
+        const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+        const saveSuccess = document.getElementById('saveSuccess');
+        */
+        const refreshBtn = document.getElementById('refreshBtn');
+        // 注释掉测试警报按钮相关代码
+        // const testAlertBtn = document.getElementById('testAlertBtn');
+        // const alertTestModal = new bootstrap.Modal(document.getElementById('alertTestModal'));
+        const alertDetailModal = new bootstrap.Modal(document.getElementById('alertDetailModal'));
+        const alertHistoryTable = document.getElementById('alertHistoryTable');
+        const totalAlertsElement = document.getElementById('totalAlerts');
+        const todayAlertsElement = document.getElementById('todayAlerts');
+        const imageCountElement = document.getElementById('imageCount');
+        const videoCountElement = document.getElementById('videoCount');
+        const multiImageCountElement = document.getElementById('multiImageCount');
+        const markAsCleanedBtn = document.getElementById('markAsCleanedBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        
+        // 当前页码
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentRecordId = null;
+        
+        // 添加模态框关闭事件监听
+        const alertDetailModalElement = document.getElementById('alertDetailModal');
+        if (alertDetailModalElement) {
+            alertDetailModalElement.addEventListener('hidden.bs.modal', function () {
+                // 模态框关闭时重置状态
+                currentRecordId = null;
+                
+                // 清空媒体容器
+                const originalMediaContainer = document.getElementById('originalMediaContainer');
+                const resultMediaContainer = document.getElementById('resultMediaContainer');
+                if (originalMediaContainer) originalMediaContainer.innerHTML = '';
+                if (resultMediaContainer) resultMediaContainer.innerHTML = '';
+                
+                // 重置坐标显示区域
+                const coordinatesContainer = document.getElementById('coordinatesContainer');
+                const coordinatesTableBody = document.getElementById('coordinatesTableBody');
+                if (coordinatesContainer) coordinatesContainer.style.display = 'none';
+                if (coordinatesTableBody) coordinatesTableBody.innerHTML = '';
+                
+                // 停止所有视频播放
+                document.querySelectorAll('video').forEach(video => {
+                    if (!video.paused) {
+                        try {
+                            video.pause();
+                        } catch (e) {
+                            console.error('停止视频播放失败:', e);
+                        }
+                    }
+                });
+            });
+        }
+        
+        // 初始化
+        loadAlertStatistics();
+        loadAlerts(currentPage);
+        
+        // 注释掉警报设置相关代码
+        /*
+        // 滑块值变化
+        confidenceSlider.addEventListener('input', function() {
+            confidenceValue.textContent = this.value + '%';
+        });
+        
+        // 邮件通知开关
+        emailAlertSwitch.addEventListener('change', function() {
+            emailSettingsContainer.classList.toggle('d-none', !this.checked);
+        });
+        
+        // 短信通知开关
+        smsAlertSwitch.addEventListener('change', function() {
+            smsSettingsContainer.classList.toggle('d-none', !this.checked);
+        });
+        
+        // 保存设置
+        saveSettingsBtn.addEventListener('click', function() {
+            // 模拟保存操作
+            saveSettingsBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> 保存中...';
+            saveSettingsBtn.disabled = true;
+            
+            // 获取设置值
+            const settings = {
+                confidence_threshold: confidenceSlider.value,
+                email_alert_enabled: emailAlertSwitch.checked,
+                email_recipients: document.getElementById('emailInput').value,
+                sms_alert_enabled: smsAlertSwitch.checked,
+                sms_recipients: document.getElementById('phoneInput').value || ''
+            };
+            
+            // 实际应用中应该发送到后端
+            console.log('保存的设置:', settings);
+            
+            setTimeout(function() {
+                saveSettingsBtn.innerHTML = '<i class="fas fa-save me-2"></i> 保存设置';
+                saveSettingsBtn.disabled = false;
+                
+                saveSuccess.classList.remove('d-none');
+                setTimeout(() => {
+                    saveSuccess.classList.add('d-none');
+                }, 3000);
+            }, 1000);
+        });
+        */
+        
+        // 标记为已清理按钮事件
+        markAsCleanedBtn.addEventListener('click', function() {
+            if (!currentRecordId) return;
+            
+            markAsCleanedBtn.disabled = true;
+            markAsCleanedBtn.textContent = '处理中...';
+            
+            // 调用API更新清理状态
+            fetch(`/admin/api/alerts/${currentRecordId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    is_cleaned: true
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                markAsCleanedBtn.disabled = false;
+                markAsCleanedBtn.textContent = '标记为已清理';
+                
+                if (data.success) {
+                    // 关闭模态框
+                    alertDetailModal.hide();
+                    // 刷新数据
+                    loadAlerts(currentPage);
+                    loadAlertStatistics();
+                }
+            })
+            .catch(error => {
+                console.error('更新状态失败:', error);
+                markAsCleanedBtn.disabled = false;
+                markAsCleanedBtn.textContent = '标记为已清理';
+            });
+        });
+        
+        // 刷新按钮
+        refreshBtn.addEventListener('click', function() {
+            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> 刷新中...';
+            refreshBtn.disabled = true;
+            
+            // 刷新数据
+            loadAlertStatistics();
+            loadAlerts(currentPage);
+            
+            setTimeout(function() {
+                refreshBtn.innerHTML = '<i class="fas fa-sync-alt me-1"></i> 刷新';
+                refreshBtn.disabled = false;
+            }, 1000);
+        });
+        
+        // 导出按钮
+        exportBtn.addEventListener('click', function() {
+            // 显示加载状态
+            exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> 导出中...';
+            exportBtn.disabled = true;
+            
+            // 获取全部数据进行导出
+            fetch('/admin/api/alerts/export')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success || !data.alerts || data.alerts.length === 0) {
+                        alert('没有可导出的数据');
+                        exportBtn.innerHTML = '<i class="fas fa-download me-1"></i> 导出记录';
+                        exportBtn.disabled = false;
+                        return;
+                    }
+                    
+                    // 准备CSV数据
+                    const alerts = data.alerts;
+                    
+                    // CSV表头
+                    let csvContent = "数据ID,检测类型,文件名,检测时间,处理状态,处理耗时\n";
+                    
+                    // 添加数据行
+                    alerts.forEach(alert => {
+                        // 格式化检测类型
+                        let alertTypeText = formatSourceType(alert.source_type || alert.alert_type);
+                        
+                        // 格式化状态
+                        const status = alert.is_cleaned ? '已处理' : '待处理';
+                        
+                        // 处理耗时
+                        const duration = alert.duration ? alert.duration.toFixed(2) + '秒' : 'N/A';
+                        
+                        // 转义特殊字符，确保CSV格式正确
+                        const escapeCsv = (str) => {
+                            if (!str) return '';
+                            // 如果字段包含逗号、双引号或换行符，需要用双引号包裹并转义双引号
+                            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                                return `"${str.replace(/"/g, '""')}"`;
+                            }
+                            return str;
+                        };
+                        
+                        // 添加数据行
+                        csvContent += [
+                            alert.id,
+                            escapeCsv(alertTypeText),
+                            escapeCsv(alert.source_name || alert.source),
+                            escapeCsv(alert.timestamp),
+                            escapeCsv(status),
+                            duration
+                        ].join(',') + '\n';
+                    });
+                    
+                    // 创建Blob对象
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    
+                    // 创建下载链接
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    
+                    // 设置下载属性
+                    const now = new Date();
+                    const dateStr = now.getFullYear() + 
+                                    ('0' + (now.getMonth() + 1)).slice(-2) + 
+                                    ('0' + now.getDate()).slice(-2) + '_' +
+                                    ('0' + now.getHours()).slice(-2) + 
+                                    ('0' + now.getMinutes()).slice(-2);
+                    
+                    link.href = url;
+                    link.setAttribute('download', `垃圾检测记录_${dateStr}.csv`);
+                    document.body.appendChild(link);
+                    
+                    // 触发下载
+                    link.click();
+                    
+                    // 释放URL对象
+                    URL.revokeObjectURL(url);
+                    document.body.removeChild(link);
+                    
+                    // 恢复按钮状态
+                    exportBtn.innerHTML = '<i class="fas fa-download me-1"></i> 导出记录';
+                    exportBtn.disabled = false;
+                })
+                .catch(error => {
+                    console.error('导出数据失败:', error);
+                    alert('导出数据失败，请稍后重试');
+                    exportBtn.innerHTML = '<i class="fas fa-download me-1"></i> 导出记录';
+                    exportBtn.disabled = false;
+                });
+        });
+        
+        // 注释掉测试警报按钮的事件监听器
+        /*
+        // 测试警报按钮
+        testAlertBtn.addEventListener('click', function() {
+            testAlertBtn.disabled = true;
+            testAlertBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> 发送中...';
+            
+            // 发送测试警报请求
+            fetch('/admin/api/alerts/test', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                testAlertBtn.innerHTML = '<i class="fas fa-bell me-1"></i> 测试警报';
+                testAlertBtn.disabled = false;
+                alertTestModal.show();
+            })
+            .catch(error => {
+                console.error('发送测试警报失败:', error);
+                testAlertBtn.innerHTML = '<i class="fas fa-bell me-1"></i> 测试警报';
+                testAlertBtn.disabled = false;
+            });
+        });
+        */
+        
+        // 加载警报统计数据
+        function loadAlertStatistics() {
+            fetch('/admin/api/alerts/statistics')
+                .then(response => response.json())
+                .then(data => {
+                    // 更新统计卡片
+                    totalAlertsElement.textContent = data.total_alerts;
+                    todayAlertsElement.textContent = data.today_alerts;
+                    imageCountElement.textContent = data.image_count;
+                    videoCountElement.textContent = data.video_count;
+                    multiImageCountElement.textContent = data.multi_image_count;
+                    
+                    // 更新图表
+                    updateChart(data.daily_stats);
+                })
+                .catch(error => {
+                    console.error('加载警报统计数据失败:', error);
+                });
+        }
+        
+        // 加载警报列表
+        function loadAlerts(page = 1, perPage = 10) {
+            fetch(`/admin/api/alerts?page=${page}&per_page=${perPage}`)
+                .then(response => response.json())
+                .then(data => {
+                    // 更新表格数据
+                    updateAlertTable(data.alerts);
+                    
+                    // 更新分页
+                    currentPage = data.current_page;
+                    totalPages = data.pages;
+                    updatePagination(currentPage, totalPages);
+                })
+                .catch(error => {
+                    console.error('加载警报列表失败:', error);
+                });
+        }
+        
+        // 更新警报表格
+        function updateAlertTable(alerts) {
+            if (!alertHistoryTable) return;
+            
+            if (alerts.length === 0) {
+                alertHistoryTable.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            <i class="fas fa-inbox fa-3x d-block mb-3 text-muted"></i>
+                            <p class="text-muted">暂无无垃圾检测记录</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // 清空表格
+            alertHistoryTable.innerHTML = '';
+            
+            // 添加数据行
+            alerts.forEach(alert => {
+                const statusClass = alert.status === '已处理' ? 'bg-success' : 'bg-warning';
+                
+                // 格式化检测类型
+                let alertTypeText = alert.alert_type;
+                switch (alert.alert_type) {
+                    case 'image':
+                        alertTypeText = '图片检测';
+                        break;
+                    case 'video':
+                        alertTypeText = '视频检测';
+                        break;
+                    case 'multi_image':
+                        alertTypeText = '批量图片检测';
+                        break;
+                    case 'camera':
+                        alertTypeText = '摄像头检测';
+                        break;
+                }
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${alert.id}</td>
+                    <td><span class="badge bg-primary">${alertTypeText}</span></td>
+                    <td>${alert.source}</td>
+                    <td>${alert.timestamp}</td>
+                    <td><span class="badge ${statusClass} status-badge">${alert.status}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary view-alert" data-id="${alert.id}" data-original="${alert.original_path}" data-result="${alert.result_path}" data-bs-toggle="tooltip" title="查看详情">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        ${alert.status !== '已处理' ? `
+                        <button class="btn btn-sm btn-outline-success mark-cleaned ms-1" data-id="${alert.id}" data-bs-toggle="tooltip" title="标记为已清理">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        ` : ''}
+                    </td>
+                `;
+                alertHistoryTable.appendChild(row);
+            });
+            
+            // 添加事件监听器
+            document.querySelectorAll('.view-alert').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const recordId = this.getAttribute('data-id');
+                    const originalPath = this.getAttribute('data-original');
+                    const resultPath = this.getAttribute('data-result');
+                    
+                    // 打开详情模态框
+                    showRecordDetail(recordId, originalPath, resultPath);
+                });
+            });
+            
+            document.querySelectorAll('.mark-cleaned').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const recordId = this.getAttribute('data-id');
+                    markAsCleanedDirectly(recordId);
+                });
+            });
+            
+            // 初始化工具提示
+            const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            tooltips.forEach(tooltip => {
+                new bootstrap.Tooltip(tooltip);
+            });
+        }
+        
+        // 显示记录详情
+        function showRecordDetail(recordId, originalPath, resultPath) {
+            currentRecordId = recordId;
+            
+            // 检查DOM元素是否存在，避免在模态框关闭后操作DOM元素导致错误
+            const coordinatesContainer = document.getElementById('coordinatesContainer');
+            const coordinatesTableBody = document.getElementById('coordinatesTableBody');
+            const detectionResultText = document.getElementById('detectionResultText');
+            
+            // 重置模态框内容
+            if (coordinatesContainer) coordinatesContainer.style.display = 'none';
+            if (coordinatesTableBody) coordinatesTableBody.innerHTML = '';
+            
+            // 查询记录详情前先显示模态框，防止DOM元素不存在
+            alertDetailModal.show();
+            
+            // 设置加载状态
+            const updateTextContent = (id, text) => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = text;
+            };
+            
+            updateTextContent('detailId', '加载中...');
+            updateTextContent('detailFilename', '加载中...');
+            updateTextContent('detailType', '加载中...');
+            updateTextContent('detailTimestamp', '加载中...');
+            updateTextContent('detailStatus', '加载中...');
+            updateTextContent('detailDuration', '加载中...');
+            if (detectionResultText) detectionResultText.textContent = '加载检测结果中...';
+            
+            // 查询记录详情
+            fetch(`/admin/api/detection_records?record_id=${recordId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success || !data.records || data.records.length === 0) {
+                        console.error('没有找到记录');
+                        updateTextContent('detailId', '未找到记录');
+                        return;
+                    }
+                    
+                    const record = data.records[0];
+                    console.log('获取到的记录详情:', record);
+                    
+                    // 检查文件类型并设置相应的媒体元素
+                    updateMediaElement('originalMediaContainer', originalPath, record.source_type);
+                    updateMediaElement('resultMediaContainer', resultPath, record.source_type);
+                    
+                    // 更新基本信息，使用安全的更新方法
+                    updateTextContent('detailId', record.id);
+                    updateTextContent('detailFilename', record.source_name || '无文件名');
+                    updateTextContent('detailType', formatSourceType(record.source_type));
+                    updateTextContent('detailTimestamp', record.timestamp || '未知时间');
+                    updateTextContent('detailStatus', record.is_cleaned ? '已清理' : '待清理');
+                    updateTextContent('detailDuration', record.duration ? record.duration.toFixed(2) : 'N/A');
+                    
+                    // 更新检测结果文本
+                    const totalObjects = record.total_objects || 0;
+                    if (detectionResultText) {
+                        detectionResultText.textContent = totalObjects > 0 
+                            ? `检测到 ${totalObjects} 个垃圾` 
+                            : '未检测到垃圾 (total_objects = 0)';
+                    }
+                    
+                    // 处理坐标信息
+                    if (record.detection_results && coordinatesContainer && coordinatesTableBody) {
+                        try {
+                            // 解析检测结果数据
+                            const detectionResults = typeof record.detection_results === 'string' 
+                                ? JSON.parse(record.detection_results) 
+                                : record.detection_results;
+                            
+                            if (detectionResults.objects && detectionResults.objects.length > 0) {
+                                // 显示坐标容器
+                                coordinatesContainer.style.display = 'block';
+                                coordinatesTableBody.innerHTML = '';
+                                
+                                // 添加每个检测对象的坐标信息
+                                detectionResults.objects.forEach((object, index) => {
+                                    // 检查是否有坐标信息
+                                    if (object.x1 !== undefined && object.y1 !== undefined && 
+                                        object.x2 !== undefined && object.y2 !== undefined) {
+                                        
+                                        // 计算宽度和高度
+                                        const width = object.x2 - object.x1;
+                                        const height = object.y2 - object.y1;
+                                        
+                                        // 获取置信度值（可能是0-1或0-100的范围）
+                                        let confidence = object.confidence;
+                                        // 如果置信度大于1，假设它已经是百分比形式
+                                        let confidenceDisplay = confidence > 1 
+                                            ? confidence.toFixed(2) + '%' 
+                                            : (confidence * 100).toFixed(2) + '%';
+                                        
+                                        // 创建表格行
+                                        const row = document.createElement('tr');
+                                        row.innerHTML = `
+                                            <td>${index + 1}</td>
+                                            <td>${object.label || '未知类型'}</td>
+                                            <td>${confidenceDisplay}</td>
+                                            <td>(${Math.round(object.x1)}, ${Math.round(object.y1)})</td>
+                                            <td>(${Math.round(object.x2)}, ${Math.round(object.y2)})</td>
+                                            <td>${Math.round(width)} × ${Math.round(height)}</td>
+                                        `;
+                                        coordinatesTableBody.appendChild(row);
+                                    }
+                                });
+                            }
+                        } catch (err) {
+                            console.error('解析检测结果数据时出错:', err);
+                        }
+                    }
+                    
+                    // 如果已经清理，禁用标记按钮
+                    if (markAsCleanedBtn) {
+                        markAsCleanedBtn.disabled = record.is_cleaned;
+                        markAsCleanedBtn.style.display = record.is_cleaned ? 'none' : 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('加载记录详情失败:', error);
+                    // 发生错误时更新UI以显示错误
+                    updateTextContent('detailId', '加载失败');
+                    updateTextContent('detailFilename', '加载失败');
+                    if (detectionResultText) {
+                        detectionResultText.textContent = '加载记录详情时发生错误';
+                    }
+                });
+        }
+        
+        // 根据文件类型更新媒体元素
+        function updateMediaElement(containerId, path, fileType) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            // 确保路径正确
+            let fullPath = path || '';
+            
+            // 检查并修复路径中的staticstatic问题
+            if (fullPath.includes('/staticstatic/')) {
+                fullPath = fullPath.replace('/staticstatic/', '/static/');
+            }
+            
+            // 检查并修复路径前缀问题
+            if (fullPath && !fullPath.startsWith('/')) {
+                // 如果路径不以/开头，添加前缀
+                if (fullPath.startsWith('static/')) {
+                    // 如果以static/开头但没有前导斜杠，添加斜杠
+                    fullPath = '/' + fullPath;
+                } else if (!fullPath.startsWith('/static')) {
+                    // 如果不以/static开头，添加/static前缀
+                    fullPath = '/static/' + fullPath;
+                }
+            }
+            
+            // 针对摄像头资源的特殊处理
+            if (fullPath && (fullPath.includes('user_camera_original') || fullPath.includes('user_camera_result')) 
+                && !fullPath.includes('/camera/')) {
+                // 确保摄像头资源指向camera子目录
+                fullPath = fullPath.replace('/static/uploads/', '/static/uploads/camera/');
+            }
+            
+            console.log('处理后的媒体路径:', fullPath);
+            
+            if (!fullPath) {
+                container.innerHTML = '<p class="text-muted">暂无媒体文件</p>';
+                return;
+            }
+            
+            // 检查文件扩展名
+            const isVideo = fullPath.match(/\.(mp4|webm|mov|avi|wmv)$/i);
+            
+            if (isVideo || fileType === 'video' || fileType === 'camera') {
+                // 判断视频类型
+                let videoType = 'mp4';
+                if (isVideo) {
+                    videoType = isVideo[1].toLowerCase();
+                } else if (fullPath.endsWith('.webm')) {
+                    videoType = 'webm';
+                }
+                
+                // 视频元素
+                container.innerHTML = `
+                    <video controls class="img-fluid mb-3 border rounded">
+                        <source src="${fullPath}" type="video/${videoType}">
+                        您的浏览器不支持视频标签
+                    </video>
+                `;
+                
+                // 添加错误处理
+                const video = container.querySelector('video');
+                if (video) {
+                    video.onerror = function() {
+                        console.error('视频加载失败:', fullPath);
+                        container.innerHTML = `
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                视频加载失败，请检查路径: ${fullPath}
+                            </div>
+                        `;
+                    };
+                }
+            } else {
+                // 图片元素
+                container.innerHTML = `<img src="${fullPath}" alt="媒体文件" class="img-fluid mb-3 border rounded">`;
+                
+                // 添加错误处理
+                const img = container.querySelector('img');
+                if (img) {
+                    img.onerror = function() {
+                        console.error('图片加载失败:', fullPath);
+                        container.innerHTML = `
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                图片加载失败，请检查路径: ${fullPath}
+                            </div>
+                        `;
+                    };
+                }
+            }
+        }
+        
+        // 格式化检测类型
+        function formatSourceType(sourceType) {
+            switch (sourceType) {
+                case 'image': return '图片检测';
+                case 'video': return '视频检测';
+                case 'multi_image': return '批量图片检测';
+                case 'camera': return '摄像头检测';
+                default: return sourceType;
+            }
+        }
+        
+        // 直接标记为已清理
+        function markAsCleanedDirectly(recordId) {
+            fetch(`/admin/api/alerts/${recordId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    is_cleaned: true
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 刷新数据
+                    loadAlerts(currentPage);
+                    loadAlertStatistics();
+                }
+            })
+            .catch(error => {
+                console.error('更新状态失败:', error);
+            });
+        }
+        
+        // 更新分页
+        function updatePagination(currentPage, totalPages) {
+            const pagination = document.getElementById('alertPagination');
+            if (!pagination) return;
+            
+            pagination.innerHTML = '';
+            
+            // 上一页
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link" href="#" ${currentPage === 1 ? 'tabindex="-1" aria-disabled="true"' : ''}>上一页</a>`;
+            pagination.appendChild(prevLi);
+            
+            // 页码
+            const startPage = Math.max(1, currentPage - 1);
+            const endPage = Math.min(totalPages, startPage + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageLi = document.createElement('li');
+                pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                pageLi.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+                pagination.appendChild(pageLi);
+            }
+            
+            // 下一页
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link" href="#" ${currentPage === totalPages ? 'tabindex="-1" aria-disabled="true"' : ''}>下一页</a>`;
+            pagination.appendChild(nextLi);
+            
+            // 添加事件监听器
+            const pageLinks = pagination.querySelectorAll('.page-link');
+            
+            pageLinks.forEach((link, index) => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    if (index === 0 && currentPage > 1) {
+                        // 上一页
+                        loadAlerts(currentPage - 1);
+                    } else if (index === pageLinks.length - 1 && currentPage < totalPages) {
+                        // 下一页
+                        loadAlerts(currentPage + 1);
+                    } else if (index !== 0 && index !== pageLinks.length - 1) {
+                        // 页码
+                        const pageNum = parseInt(this.textContent);
+                        loadAlerts(pageNum);
+                    }
+                });
+            });
+        }
+        
+        // 创建警报统计图表
+        let alertsChart;
+        
+        function updateChart(dailyStats) {
+            const ctx = document.getElementById('alertsChart').getContext('2d');
+            
+            const labels = dailyStats.map(item => item.date);
+            const data = dailyStats.map(item => item.count);
+            
+            if (alertsChart) {
+                // 更新现有图表
+                alertsChart.data.labels = labels;
+                alertsChart.data.datasets[0].data = data;
+                alertsChart.update();
+            } else {
+                // 创建新图表
+                alertsChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '每日垃圾检测数',
+                            data: data,
+                            backgroundColor: 'rgba(13, 202, 240, 0.4)',
+                            borderColor: 'rgba(13, 202, 240, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        // 高亮当前导航项函数
+        function highlightCurrentNavItem() {
+            // 移除所有导航项的激活状态
+            const navItems = document.querySelectorAll('.sidebar-menu .nav-link');
+            navItems.forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // 获取警报管理导航项并添加激活状态
+            const alertNavItem = document.querySelector('.sidebar-menu .nav-link[href*="alert_management"]');
+            if (alertNavItem) {
+                alertNavItem.classList.add('active');
+            }
+        }
+    });
+</script>
+{% endblock %} 

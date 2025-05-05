@@ -1,0 +1,35 @@
+path: ../data  # 数据集路径
+train: images/train  # 训练图像路径
+val: images/val  # 验证图像路径
+test: images/test  # 测试图像路径
+
+# 类别数量和名称
+nc: 2  # 类别数量
+names: ['damage', 'normal']  # 类别名称
+
+# 训练参数
+epochs: 100
+batch_size: 16
+img_size: 640
+workers: 4
+
+# 模型配置
+model:
+  type: yolov8
+  size: m  # 可选 n, s, m, l, x
+  pretrained: True
+
+# 数据增强
+augmentation:
+  hsv_h: 0.015
+  hsv_s: 0.7
+  hsv_v: 0.4
+  degrees: 0.0
+  translate: 0.1
+  scale: 0.5
+  shear: 0.0
+  perspective: 0.0
+  flipud: 0.0
+  fliplr: 0.5
+  mosaic: 1.0
+  mixup: 0.0 

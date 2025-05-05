@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}登录 - 结构损伤的高级识别和绘图{% endblock %}
+
+{% block extra_css %}
+<style>
+    .login-container {
+        max-width: 400px;
+        margin: 2rem auto;
+        padding: 2rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .login-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .login-header i {
+        font-size: 3rem;
+        color: #28a745;
+        margin-bottom: 1rem;
+    }
+    .form-floating {
+        margin-bottom: 1rem;
+    }
+    .btn-login {
+        width: 100%;
+    }
+    .register-link {
+        text-align: center;
+        margin-top: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-header">
+        <i class="fas fa-recycle"></i>
+        <h2>用户登录</h2>
+        <p class="text-muted">欢迎使用结构损伤的高级识别和绘图</p>
+    </div>
+    
+    <form method="POST" action="{{ url_for('login') }}" id="loginForm">
+        <div class="form-floating">
+            <input type="text" class="form-control" id="username" name="username" placeholder="用户名" required>
+            <label for="username">用户名</label>
+        </div>
+        <div class="form-floating">
+            <input type="password" class="form-control" id="password" name="password" placeholder="密码" required>
+            <label for="password">密码</label>
+        </div>
+        <button type="submit" class="btn btn-primary btn-login">
+            <i class="fas fa-sign-in-alt me-2"></i>登录
+        </button>
+    </form>
+    
+    <div class="register-link">
+        <p>还没有账号？ <a href="{{ url_for('register') }}">立即注册</a></p>
+        <div class="mt-3 text-center">
+            <p class="text-muted"><small>普通用户登录将进入检测系统主页</small></p>
+            <p class="text-muted"><small>管理员用户请访问 <a href="{{ url_for('admin.admin_login') }}">管理员登录</a></small></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 登录成功后保存用户信息到localStorage
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+    // 由于表单正常提交会跳转，我们在这里只保存用户名到localStorage
+    // 服务器端验证成功后会重定向到首页
+    const username = document.getElementById('username').value;
+    localStorage.setItem('currentUsername', username);
+});
+
+// 如果有闪现消息说明登录成功，页面即将跳转
+{% with messages = get_flashed_messages(category_filter=["success"]) %}
+    {% if messages %}
+        {% for message in messages %}
+            {% if '登录成功' in message %}
+                // 这段代码只在登录成功的消息闪现时执行
+                const username = document.getElementById('username').value;
+                localStorage.setItem('currentUsername', username);
+                localStorage.setItem('isLoggedIn', 'true');
+                localStorage.setItem('loginTime', Date.now());
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+</script>
+{% endblock %} 

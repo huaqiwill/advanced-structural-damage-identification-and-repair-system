@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}首页 - 结构损伤的高级识别和绘图{% endblock %}
+
+{% block extra_css %}
+<style>
+    .main-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    .feature-card {
+        background-color: #fff;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 2rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        height: 100%;
+        border: 2px solid transparent;
+    }
+    .feature-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--theme-color);
+    }
+    .feature-icon {
+        font-size: 3rem;
+        color: var(--theme-color);
+        margin-bottom: 1.5rem;
+    }
+    .feature-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: var(--theme-color);
+    }
+    .feature-description {
+        color: #6c757d;
+        margin-bottom: 1.5rem;
+    }
+    .btn-feature {
+        background-color: var(--theme-color);
+        border-color: var(--theme-color);
+        color: #fff;
+        padding: 0.75rem 2rem;
+        border-radius: 10px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    .btn-feature:hover {
+        background-color: var(--theme-color-dark);
+        border-color: var(--theme-color-dark);
+        color: #fff;
+        transform: translateY(-2px);
+    }
+    .btn-feature i {
+        margin-right: 0.5rem;
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    .pulse {
+        animation: pulse 2s infinite;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="text-center mb-5">
+        <h1 class="display-4 fw-bold text-theme">结构损伤的高级识别和绘图</h1>
+        <p class="lead text-muted">智能识别垃圾类型，助力环保事业</p>
+    </div>
+    <div class="row g-4">
+        <!-- 图片检测 -->
+        <div class="col-lg-4">
+            <div class="feature-card">
+                <i class="fas fa-image feature-icon"></i>
+                <h3 class="feature-title">图片检测</h3>
+                <p class="feature-description">
+                    上传图片，快速识别垃圾类型。支持多种图片格式，准确率高。
+                </p>
+                <a href="/image_detection" class="btn btn-feature">
+                    <i class="fas fa-arrow-right"></i>开始检测
+                </a>
+            </div>
+        </div>
+
+        <!-- 食品检测 -->
+        <div class="col-lg-4">
+            <div class="feature-card">
+                <i class="fas fa-utensils feature-icon"></i>
+                <h3 class="feature-title">食品检测</h3>
+                <p class="feature-description">
+                    专门用于食品垃圾的识别和分类，提供精准的处理建议。
+                </p>
+                <a href="/food_detection" class="btn btn-feature">
+                    <i class="fas fa-arrow-right"></i>开始检测
+                </a>
+            </div>
+        </div>
+
+        <!-- 实时检测 -->
+        <div class="col-lg-4">
+            <div class="feature-card">
+                <i class="fas fa-camera feature-icon pulse"></i>
+                <h3 class="feature-title">实时检测</h3>
+                <p class="feature-description">
+                    使用摄像头实时检测垃圾类型，适合动态场景应用。
+                </p>
+                <a href="/realtime_detection" class="btn btn-feature">
+                    <i class="fas fa-arrow-right"></i>开始检测
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

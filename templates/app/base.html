@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    /* 移动端基础样式 */
+    :root {
+        --tab-height: 60px;
+        --content-padding: 16px;
+    }
+    
+    body {
+        padding-bottom: var(--tab-height);
+        background-color: #f5f5f5;
+    }
+    
+    .app-container {
+        max-width: 100%;
+        margin: 0 auto;
+        padding: var(--content-padding);
+    }
+    
+    /* 底部导航栏 */
+    .bottom-tab-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: var(--tab-height);
+        background-color: #fff;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+    }
+    
+    .tab-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex: 1;
+        height: 100%;
+        color: #666;
+        text-decoration: none;
+        font-size: 12px;
+    }
+    
+    .tab-item.active {
+        color: var(--theme-color);
+    }
+    
+    .tab-icon {
+        font-size: 24px;
+        margin-bottom: 4px;
+    }
+    
+    /* 移动端卡片样式 */
+    .mobile-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* 移动端按钮样式 */
+    .mobile-btn {
+        display: block;
+        width: 100%;
+        padding: 12px;
+        border-radius: 8px;
+        text-align: center;
+        font-size: 16px;
+        margin: 8px 0;
+    }
+    
+    /* 移动端表单样式 */
+    .mobile-form-group {
+        margin-bottom: 16px;
+    }
+    
+    .mobile-form-control {
+        width: 100%;
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+        font-size: 16px;
+    }
+    
+    /* 响应式调整 */
+    @media (min-width: 768px) {
+        .app-container {
+            max-width: 768px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="app-container">
+    {% block app_content %}{% endblock %}
+</div>
+
+<!-- 底部导航栏 -->
+<div class="bottom-tab-bar">
+    <a href="{{ url_for('app_home') }}" class="tab-item {% if request.endpoint == 'app_home' %}active{% endif %}">
+        <i class="fas fa-home tab-icon"></i>
+        <span>首页</span>
+    </a>
+    <a href="{{ url_for('app_detection') }}" class="tab-item {% if request.endpoint == 'app_detection' %}active{% endif %}">
+        <i class="fas fa-camera tab-icon"></i>
+        <span>检测</span>
+    </a>
+    <a href="{{ url_for('app_records') }}" class="tab-item {% if request.endpoint == 'app_records' %}active{% endif %}">
+        <i class="fas fa-history tab-icon"></i>
+        <span>记录</span>
+    </a>
+    <a href="{{ url_for('app_profile') }}" class="tab-item {% if request.endpoint == 'app_profile' %}active{% endif %}">
+        <i class="fas fa-user tab-icon"></i>
+        <span>我的</span>
+    </a>
+</div>
+{% endblock %} 

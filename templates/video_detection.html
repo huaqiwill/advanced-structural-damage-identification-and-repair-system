@@ -1,0 +1,474 @@
+{% extends "base.html" %}
+
+{% block title %}视频检测 - 结构损伤的高级识别和绘图{% endblock %}
+
+{% block extra_css %}
+<style>
+    .main-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    .upload-container {
+        border: 2px dashed var(--theme-color);
+        border-radius: 15px;
+        padding: 3rem;
+        text-align: center;
+        background-color: #f8f9fa;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 2rem;
+    }
+    .upload-container:hover {
+        border-color: var(--theme-color-dark);
+        background-color: #f3f0f7;
+        transform: translateY(-2px);
+    }
+    .upload-icon {
+        font-size: 4rem;
+        color: var(--theme-color);
+        margin-bottom: 1.5rem;
+        transition: all 0.3s ease;
+    }
+    .upload-container:hover .upload-icon {
+        transform: scale(1.1);
+    }
+    .video-preview {
+        background-color: #fff;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        display: none;
+    }
+    .video-preview video {
+        width: 100%;
+        border-radius: 10px;
+        background-color: #000;
+    }
+    .progress-container {
+        background-color: #fff;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        display: none;
+    }
+    .progress {
+        height: 25px;
+        border-radius: 15px;
+        background-color: #e9ecef;
+        margin-bottom: 1rem;
+    }
+    .progress-bar {
+        background-color: var(--theme-color);
+        border-radius: 15px;
+        transition: width 0.3s ease;
+    }
+    .result-container {
+        background-color: #fff;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-top: 2rem;
+        display: none;
+    }
+    .stats-card {
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+    }
+    .stats-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    .result-video-container {
+        margin-top: 2rem;
+        border-radius: 10px;
+        overflow: hidden;
+        background-color: #000;
+    }
+    .result-video {
+        width: 100%;
+        border-radius: 10px;
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    .pulse {
+        animation: pulse 2s infinite;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="text-center mb-4">
+        <h2 class="display-5 fw-bold text-theme">视频检测</h2>
+        <p class="lead text-muted">上传视频，智能识别水面垃圾类型</p>
+    </div>
+    
+    <!-- 上传区域 -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <form id="uploadForm">
+                <div id="dropZone" class="upload-container">
+                    <i class="fas fa-cloud-upload-alt upload-icon pulse"></i>
+                    <h4 class="mb-3">点击或拖放视频文件到此处</h4>
+                    <p class="text-muted mb-0">支持的格式：MP4, AVI, MOV</p>
+                    <input type="file" id="videoInput" class="d-none" accept=".mp4,.avi,.mov" 
+                           aria-label="选择视频文件">
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 视频预览 -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div id="videoPreviewContainer" class="video-preview">
+                <video id="videoPreview" controls></video>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 进度显示 -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div id="progressContainer" class="progress-container">
+                <h5 class="mb-3">处理进度</h5>
+                <div class="progress">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" style="width: 0%">0%</div>
+                </div>
+                <p class="text-center mt-2" id="progressStatus">准备处理...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 检测结果 -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div id="resultContainer" class="result-container">
+                <h5 class="card-title mb-4">检测结果</h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="stats-card text-center">
+                            <h6 class="mb-2">检测时间</h6>
+                            <p id="detection-timestamp" class="mb-0 fs-5">-</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stats-card text-center">
+                            <h6 class="mb-2">处理时长</h6>
+                            <p id="processingTime" class="mb-0 fs-5">-</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stats-card text-center">
+                            <h6 class="mb-2">检测结果</h6>
+                            <p id="detectionCount" class="mb-0 fs-5">-</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="result-video-container">
+                    <video id="resultVideo" class="result-video" controls></video>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <a id="downloadLink" href="#" class="btn btn-theme" download>
+                        <i class="fas fa-download me-2"></i>下载处理后的视频
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script>
+const dropZone = document.getElementById('dropZone');
+const videoInput = document.getElementById('videoInput');
+const videoPreview = document.getElementById('videoPreview');
+const videoPreviewContainer = document.getElementById('videoPreviewContainer');
+const uploadForm = document.getElementById('uploadForm');
+const progressContainer = document.getElementById('progressContainer');
+const progressBar = document.querySelector('.progress-bar');
+const progressStatus = document.getElementById('progressStatus');
+const resultContainer = document.getElementById('resultContainer');
+const socket = io();
+
+// 拖放处理
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, preventDefaults, false);
+    document.body.addEventListener(eventName, preventDefaults, false);
+});
+
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+['dragenter', 'dragover'].forEach(eventName => {
+    dropZone.addEventListener(eventName, highlight, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, unhighlight, false);
+});
+
+function highlight(e) {
+    dropZone.classList.add('border-primary');
+}
+
+function unhighlight(e) {
+    dropZone.classList.remove('border-primary');
+}
+
+// 文件选择处理
+dropZone.addEventListener('click', () => videoInput.click());
+
+dropZone.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    const file = dt.files[0];
+    handleFile(file);
+});
+
+videoInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    handleFile(file);
+});
+
+function handleFile(file) {
+    if (file && file.type.startsWith('video/')) {
+        // 显示视频预览
+        videoPreview.src = URL.createObjectURL(file);
+        videoPreviewContainer.style.display = 'block';
+        resultContainer.style.display = 'none';
+        
+        // 上传视频
+        uploadVideo(file);
+    } else {
+        alert('请选择有效的视频文件（MP4、AVI、MOV）');
+    }
+}
+
+function uploadVideo(file) {
+    const formData = new FormData();
+    formData.append('video', file);
+    
+    // 显示进度条
+    progressContainer.style.display = 'block';
+    progressBar.style.width = '0%';
+    progressBar.textContent = '0%';
+    progressStatus.textContent = '准备处理...';
+    
+    // 发送视频
+    fetch('/api/detect/video', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("API返回数据:", data);
+        if (data.success) {
+            // 更新检测时间
+            const timestamp = new Date();
+            document.getElementById('detection-timestamp').textContent = 
+                timestamp.toLocaleString('zh-CN');
+            
+            // 更新处理时长 - 兼容多种API返回格式
+            const processingTime = data.processing_time || 
+                                  data.detection_results?.processing_time || 
+                                  data.duration || 0;
+            document.getElementById('processingTime').textContent = 
+                processingTime.toFixed(2) + 's';
+            
+            // 更新检测统计信息
+            let resultText = '';
+            // 检查API返回结构
+            if (data.object_distribution) {
+                // 新API格式，使用object_distribution
+                for (const [category, count] of Object.entries(data.object_distribution)) {
+                    resultText += `${category}: ${count}个\n`;
+                }
+            } else if (data.detection_results) {
+                // 另一种API格式，有summary和objects结构
+                if (data.detection_results.summary) {
+                    for (const [category, count] of Object.entries(data.detection_results.summary)) {
+                        resultText += `${category}: ${count}个\n`;
+                    }
+                } 
+                // 或者直接使用detection_results
+                else if (typeof data.detection_results === 'object' && !Array.isArray(data.detection_results)) {
+                    for (const [category, count] of Object.entries(data.detection_results)) {
+                        if (typeof count === 'number') {
+                            resultText += `${category}: ${count}个\n`;
+                        }
+                    }
+                }
+            }
+            
+            // 如果没有获取到具体分布，但有total_objects，则显示总数
+            if (!resultText && data.total_objects) {
+                resultText = `共检测到 ${data.total_objects} 个对象`;
+            }
+            
+            document.getElementById('detectionCount').textContent = resultText || '无检测结果';
+            
+            // 获取视频URL - 适应不同的API响应格式
+            let videoUrl = data.result_video_url || data.result_url;
+            if (videoUrl && !videoUrl.startsWith('http') && !videoUrl.startsWith('/')) {
+                videoUrl = '/' + videoUrl;
+            }
+            
+            // 确保videoUrl存在
+            if (!videoUrl) {
+                console.error("未获取到视频URL:", data);
+                alert("无法加载处理后的视频，请联系管理员");
+                return;
+            }
+            
+            // 显示处理后的视频
+            document.getElementById('resultVideo').src = videoUrl;
+            document.getElementById('downloadLink').href = videoUrl;
+            resultContainer.style.display = 'block';
+            
+            // 检查是否有对象列表
+            let objectsList = [];
+            if (data.detection_results && data.detection_results.objects && 
+                Array.isArray(data.detection_results.objects)) {
+                objectsList = data.detection_results.objects;
+            }
+            
+            // 如果有objects对象列表，添加详细显示
+            if (objectsList.length > 0) {
+                
+                // 添加检测对象详情区域
+                if (!document.getElementById('objectsList')) {
+                    const resultContainer = document.getElementById('resultContainer');
+                    
+                    // 创建对象列表区域
+                    const detailsSection = document.createElement('div');
+                    detailsSection.className = 'mt-4';
+                    detailsSection.innerHTML = `
+                        <h5 class="mb-3">检测到的对象详情</h5>
+                        <div id="objectsList" class="objects-list">
+                            <!-- 对象将在这里动态添加 -->
+                        </div>
+                    `;
+                    
+                    // 插入到下载按钮前
+                    const downloadDiv = document.querySelector('#resultContainer .text-center.mt-4');
+                    resultContainer.insertBefore(detailsSection, downloadDiv);
+                    
+                    // 添加必要的CSS
+                    if (!document.querySelector('style[data-id="objects-list-style"]')) {
+                        const style = document.createElement('style');
+                        style.setAttribute('data-id', 'objects-list-style');
+                        style.textContent = `
+                            .objects-list {
+                                max-height: 300px;
+                                overflow-y: auto;
+                                margin-top: 1rem;
+                                background-color: #f8f9fa;
+                                border-radius: 10px;
+                                padding: 1rem;
+                            }
+                            .object-item {
+                                padding: 0.8rem;
+                                border-bottom: 1px solid #e9ecef;
+                                display: flex;
+                                justify-content: space-between;
+                                align-items: center;
+                                transition: all 0.2s ease;
+                            }
+                            .object-item:hover {
+                                background-color: #e9ecef;
+                                border-radius: 5px;
+                            }
+                            .object-item:last-child {
+                                border-bottom: none;
+                            }
+                        `;
+                        document.head.appendChild(style);
+                    }
+                }
+                
+                // 填充对象列表
+                const objectsListElement = document.getElementById('objectsList');
+                objectsListElement.innerHTML = '';
+                
+                objectsList.forEach(obj => {
+                    const item = document.createElement('div');
+                    item.className = 'object-item';
+                    
+                    // 确认对象中存在坐标信息
+                    const hasCoordinates = obj.x1 !== undefined && obj.y1 !== undefined && 
+                                          obj.x2 !== undefined && obj.y2 !== undefined;
+                    
+                    // 计算物体尺寸（如果有坐标）
+                    let width = 0, height = 0, area = 0;
+                    if (hasCoordinates) {
+                        width = obj.x2 - obj.x1;
+                        height = obj.y2 - obj.y1;
+                        area = width * height;
+                    }
+                    
+                    // 创建对象信息HTML
+                    item.innerHTML = `
+                        <div>
+                            <i class="fas fa-trash-alt me-2 text-theme"></i>
+                            <span class="fw-bold">${obj.label || '未知对象'}</span>
+                            ${hasCoordinates ? 
+                                `<div class="mt-1 small">
+                                    <div class="text-muted">坐标: (${obj.x1},${obj.y1})-(${obj.x2},${obj.y2})</div>
+                                    <div class="text-muted">尺寸: ${width}×${height}px (${area}px²)</div>
+                                </div>` : 
+                                ''}
+                        </div>
+                        <span class="badge bg-theme">
+                            ${obj.confidence !== undefined ? `置信度：${obj.confidence.toFixed(1)}%` : ''}
+                        </span>
+                    `;
+                    
+                    objectsListElement.appendChild(item);
+                });
+            }
+            
+            // 完成进度显示
+            progressBar.style.width = '100%';
+            progressBar.textContent = '100%';
+            progressStatus.textContent = '处理完成！';
+        } else {
+            // 显示错误信息
+            progressBar.style.width = '100%';
+            progressBar.textContent = '失败';
+            progressStatus.textContent = data.message || data.error || '处理失败，请重试！';
+            alert('处理失败：' + (data.message || data.error || '未知错误'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        progressBar.style.width = '100%';
+        progressBar.textContent = '失败';
+        progressStatus.textContent = '处理请求失败，请重试！';
+        alert('处理失败，请重试！');
+    });
+}
+
+// 处理进度更新
+socket.on('detection_progress', (data) => {
+    progressBar.style.width = `${data.progress}%`;
+    progressBar.textContent = `${data.progress}%`;
+    progressStatus.textContent = `正在处理第 ${data.current_frame} 帧，共 ${data.total_frames} 帧`;
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,606 @@
+{% extends "base.html" %}
+
+{% block title %}检测记录 - 结构损伤的高级识别和绘图{% endblock %}
+
+{% set is_admin = session.get('is_admin', False) %}
+
+{% block extra_css %}
+<style>
+.stats-card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.stats-card h3 {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+}
+
+.stats-card .value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    margin: 10px 0;
+}
+
+.chart-container {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    height: 250px; /* 控制图表容器高度 */
+}
+
+.records-table {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.table th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.export-btn {
+    margin-bottom: 20px;
+}
+
+/* DataTables样式调整 */
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: #0d6efd !important;
+    border-color: #0d6efd !important;
+    color: white !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: #0b5ed7 !important;
+    border-color: #0b5ed7 !important;
+    color: white !important;
+}
+</style>
+<!-- DataTables CSS -->
+<link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">检测记录</h2>
+    
+    <!-- 统计卡片 -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3>总检测次数</h3>
+                <div class="value">{{ stats.total }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3>今日检测次数</h3>
+                <div class="value">{{ stats.daily_stats[-1].count if stats.daily_stats else 0 }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3>未清理垃圾</h3>
+                <div class="value text-warning">{{ stats.uncleaned }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3>已清理垃圾</h3>
+                <div class="value text-success">{{ stats.cleaned }}</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 图表 -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="chart-container">
+                <h3 class="mb-2" style="font-size: 16px; color: #555;">检测物体分布</h3>
+                <canvas id="distributionChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 导出按钮 -->
+    <div class="export-btn">
+        <a href="{{ url_for('export_records') }}" class="btn btn-primary" download="detection_records.csv">
+            <i class="fas fa-download"></i> 导出记录
+        </a>
+    </div>
+    
+    <!-- 记录表格 -->
+    <div class="records-table">
+        <table class="table" id="recordsTable">
+            <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>检测时间</th>
+                    <th>检测类型</th>
+                    <th>文件名</th>
+                    <th>处理时间(ms)</th>
+                    <th>垃圾是否清理</th>
+                    <th>清理操作</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td>{{ loop.index + (pagination.page - 1) * pagination.per_page }}</td>
+                    <td>{{ record.timestamp.strftime('%Y-%m-%d %H:%M:%S') if record.timestamp is defined and record.timestamp else record.timestamp }}</td>
+                    <td>
+                        {% if record.source_type == 'image' %}
+                            <span class="badge bg-primary">图片检测</span>
+                        {% elif record.source_type == 'video' %}
+                            <span class="badge bg-success">视频检测</span>
+                        {% elif record.source_type == 'multi_image' %}
+                            <span class="badge bg-info">批量图片</span>
+                        {% elif record.source_type == 'camera' %}
+                            <span class="badge bg-warning">摄像头</span>
+                        {% else %}
+                            {{ record.source_type }}
+                        {% endif %}
+                    </td>
+                    <td>{{ record.source_name }}</td>
+                    <td>{{ "%.2f"|format(record.duration * 1000) if record.duration is defined else record.duration }}</td>
+                    <td id="status-{{ record.id }}">
+                        {% if record.is_cleaned %}
+                            <span class="badge bg-success">已清理</span>
+                        {% else %}
+                            <span class="badge bg-warning">未清理</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if is_admin %}
+                        <button class="btn btn-sm btn-success" onclick="updateCleanStatus({{ record.id }})" id="clean-btn-{{ record.id }}"
+                                {% if record.is_cleaned %}disabled{% endif %}>
+                            <i class="fas fa-broom me-1"></i>清理垃圾
+                        </button>
+                        {% else %}
+                        <span {% if record.is_cleaned %}class="text-success"{% else %}class="text-warning"{% endif %}>
+                            {% if record.is_cleaned %}已清理{% else %}等待清理{% endif %}
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-info" onclick="viewDetail({{ record.id }})" title="查看详情">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        {% if is_admin %}
+                        <button class="btn btn-sm btn-danger" onclick="deleteRecord({{ record.id }})" title="删除记录">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <!-- 分页控件 -->
+        <div class="pagination-container mt-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <label class="me-2">每页显示:</label>
+                        <select id="recordsLengthSelect" class="form-select form-select-sm">
+                            <option value="10">10条</option>
+                            <option value="25">25条</option>
+                            <option value="50">50条</option>
+                            <option value="100">100条</option>
+                        </select>
+                    </div>
+                    <div class="page-info">
+                        显示 {{ pagination.page }}/{{ pagination.pages }} 页，共 {{ pagination.total }} 条记录
+                    </div>
+                </div>
+                
+                <nav aria-label="Page navigation">
+                    <ul class="pagination pagination-sm">
+                        <!-- 首页 -->
+                        <li class="page-item {% if pagination.page == 1 %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('detection_records', page=1, per_page=request.args.get('per_page', 10)) }}" aria-label="First">
+                                <span aria-hidden="true">&laquo;&laquo;</span>
+                            </a>
+                        </li>
+                        
+                        <!-- 上一页 -->
+                        <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('detection_records', page=pagination.prev_num, per_page=request.args.get('per_page', 10)) }}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        
+                        <!-- 页码 -->
+                        {% set start_page = [1, pagination.page - 2]|max %}
+                        {% set end_page = [pagination.pages, pagination.page + 2]|min %}
+                        
+                        {% if start_page > 1 %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                        
+                        {% for page_num in range(start_page, end_page + 1) %}
+                            <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('detection_records', page=page_num, per_page=request.args.get('per_page', 10)) }}">{{ page_num }}</a>
+                            </li>
+                        {% endfor %}
+                        
+                        {% if end_page < pagination.pages %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                        
+                        <!-- 下一页 -->
+                        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('detection_records', page=pagination.next_num, per_page=request.args.get('per_page', 10)) }}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        
+                        <!-- 末页 -->
+                        <li class="page-item {% if pagination.page == pagination.pages %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('detection_records', page=pagination.pages, per_page=request.args.get('per_page', 10)) }}" aria-label="Last">
+                                <span aria-hidden="true">&raquo;&raquo;</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 详情模态框 -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="detailModalLabel">检测详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="basic-info mb-4">
+                    <h6>基本信息</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>检测时间：</strong><span id="detailTime"></span></p>
+                            <p><strong>检测类型：</strong><span id="detailType"></span></p>
+                            <p><strong>文件名：</strong><span id="detailFilename"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>处理时间：</strong><span id="detailProcessingTime"></span></p>
+                            <p><strong>检测总数：</strong><span id="detailTotalObjects"></span></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="detection-results">
+                    <h6>检测结果统计</h6>
+                    <div id="detailResultsSummary" class="mb-3"></div>
+                    <h6>详细结果</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm" id="detailResultsTable">
+                            <thead>
+                                <tr>
+                                    <th>类别</th>
+                                    <th>置信度</th>
+                                    <th>坐标 (x1, y1, x2, y2)</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script>
+// 初始化DataTables
+$(document).ready(function() {
+    // 保存当前显示每页记录数的参数
+    let currentPerPage = parseInt(new URLSearchParams(window.location.search).get('per_page') || '10');
+    
+    // 设置选择每页显示数量的事件
+    $('#recordsLengthSelect').val(currentPerPage);
+    $('#recordsLengthSelect').on('change', function() {
+        const newPerPage = $(this).val();
+        const url = new URL(window.location.href);
+        url.searchParams.set('per_page', newPerPage);
+        url.searchParams.set('page', '1'); // 更改每页显示数量后回到第一页
+        window.location.href = url.toString();
+    });
+    
+    // 初始化DataTables，禁用内置分页和信息显示
+    const dataTable = $('#recordsTable').DataTable({
+        language: {
+            "sProcessing": "处理中...",
+            "sLengthMenu": "显示 _MENU_ 条",
+            "sZeroRecords": "没有匹配结果",
+            "sInfo": "显示第 _START_ 至 _END_ 项结果，共 _TOTAL_ 项",
+            "sInfoEmpty": "显示第 0 至 0 项结果，共 0 项",
+            "sInfoFiltered": "(由 _MAX_ 项结果过滤)",
+            "sInfoPostFix": "",
+            "sSearch": "搜索:",
+            "sUrl": "",
+            "sEmptyTable": "暂无数据",
+            "sLoadingRecords": "载入中...",
+            "sInfoThousands": ",",
+            "oPaginate": {
+                "sFirst": "首页",
+                "sPrevious": "上页",
+                "sNext": "下页",
+                "sLast": "末页"
+            },
+            "oAria": {
+                "sSortAscending": ": 以升序排列此列",
+                "sSortDescending": ": 以降序排列此列"
+            }
+        },
+        order: [[1, 'desc']], // 按检测时间降序排序
+        paging: false,        // 禁用DataTables内置分页
+        info: false,          // 禁用信息显示
+        lengthChange: false,  // 禁用每页显示数量选择
+        searching: true,      // 保留搜索功能
+        columnDefs: [
+            {
+                targets: 0,  // 序号列
+                orderable: false  // 禁用排序
+            },
+            {
+                targets: -1,  // 操作列
+                orderable: false  // 禁用排序
+            }
+        ]
+    });
+});
+
+// 检测物体分布图表
+const ctx = document.getElementById('distributionChart').getContext('2d');
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: {{ stats.garbage_distribution|map(attribute='name')|list|tojson if stats.garbage_distribution else []|tojson }},
+        datasets: [{
+            label: '检测数量',
+            data: {{ stats.garbage_distribution|map(attribute='value')|list|tojson if stats.garbage_distribution else []|tojson }},
+            backgroundColor: [
+                'rgba(54, 162, 235, 0.6)',
+                'rgba(75, 192, 192, 0.6)',
+                'rgba(255, 159, 64, 0.6)',
+                'rgba(153, 102, 255, 0.6)',
+                'rgba(255, 99, 132, 0.6)',
+                'rgba(255, 205, 86, 0.6)'
+            ],
+            borderColor: [
+                'rgba(54, 162, 235, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(255, 159, 64, 1)',
+                'rgba(153, 102, 255, 1)',
+                'rgba(255, 99, 132, 1)',
+                'rgba(255, 205, 86, 1)'
+            ],
+            borderWidth: 1,
+            borderRadius: 6,
+            barPercentage: 0.6, // 控制柱子宽度（相对于可用空间的百分比）
+            maxBarThickness: 40, // 控制最大柱子厚度（像素）
+            hoverBackgroundColor: [
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(255, 159, 64, 0.8)',
+                'rgba(153, 102, 255, 0.8)',
+                'rgba(255, 99, 132, 0.8)',
+                'rgba(255, 205, 86, 0.8)'
+            ]
+        }]
+    },
+    options: {
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1,
+                    color: '#6c757d',
+                    font: {
+                        size: 10
+                    }
+                },
+                grid: {
+                    color: 'rgba(0, 0, 0, 0.05)'
+                }
+            },
+            x: {
+                ticks: {
+                    color: '#6c757d',
+                    font: {
+                        size: 10
+                    },
+                    maxRotation: 0, // 防止x轴标签旋转
+                    autoSkip: true // 自动跳过标签以避免拥挤
+                },
+                grid: {
+                    display: false
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            },
+            tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                padding: 10,
+                caretSize: 5,
+                displayColors: true,
+                callbacks: {
+                    label: function(context) {
+                        return `${context.label}: ${context.raw}个`;
+                    }
+                }
+            }
+        },
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: {
+            padding: {
+                left: 10,
+                right: 10,
+                top: 10,
+                bottom: 10
+            }
+        }
+    }
+});
+
+// 查看详情
+function viewDetail(id) {
+    fetch(`/api/detection_detail/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            // 基本信息
+            document.getElementById('detailTime').textContent = data.detection_time;
+            document.getElementById('detailType').textContent = formatSourceType(data.type);
+            document.getElementById('detailFilename').textContent = data.file_name;
+            document.getElementById('detailProcessingTime').textContent = `${data.processing_time.toFixed(2)}ms`;
+            document.getElementById('detailTotalObjects').textContent = data.results.length;
+            
+            // 统计每个类别的数量
+            const categoryCounts = {};
+            data.results.forEach(result => {
+                categoryCounts[result.label] = (categoryCounts[result.label] || 0) + 1;
+            });
+            
+            // 显示类别统计
+            const summaryDiv = document.getElementById('detailResultsSummary');
+            summaryDiv.innerHTML = Object.entries(categoryCounts)
+                .map(([category, count]) => `<span class="badge bg-info me-2">${category}: ${count}</span>`)
+                .join('');
+            
+            // 显示详细结果表格
+            const tbody = document.querySelector('#detailResultsTable tbody');
+            tbody.innerHTML = '';
+            data.results.forEach(result => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${result.label}</td>
+                    <td>${result.confidence.toFixed(2)}%</td>
+                    <td>${result.x1 !== undefined ? 
+                        `(${result.x1}, ${result.y1}, ${result.x2}, ${result.y2})` : 
+                        '无坐标信息'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            // 使用Bootstrap 5的方式显示模态框
+            const modal = new bootstrap.Modal(document.getElementById('detailModal'));
+            modal.show();
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+// 格式化检测类型
+function formatSourceType(sourceType) {
+    switch (sourceType) {
+        case 'image': return '图片检测';
+        case 'video': return '视频检测';
+        case 'multi_image': return '批量图片检测';
+        case 'camera': return '摄像头检测';
+        default: return sourceType;
+    }
+}
+
+// 删除记录
+function deleteRecord(id) {
+    {% if is_admin %}
+    if (confirm('确定要删除这条记录吗？')) {
+        fetch(`/api/delete_record/${id}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || '删除失败');
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+    {% else %}
+    alert('您没有权限执行此操作');
+    {% endif %}
+}
+
+// 更新清理状态
+function updateCleanStatus(id) {
+    {% if is_admin %}
+    fetch(`/api/update_clean_status/${id}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ is_cleaned: true })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 更新状态显示
+            const statusCell = document.getElementById(`status-${id}`);
+            statusCell.innerHTML = '<span class="badge bg-success">已清理</span>';
+            
+            // 禁用清理按钮
+            const cleanBtn = document.getElementById(`clean-btn-${id}`);
+            cleanBtn.disabled = true;
+
+            // 更新统计数字
+            const uncleanedValue = document.querySelector('.stats-card:nth-child(3) .value');
+            const cleanedValue = document.querySelector('.stats-card:nth-child(4) .value');
+            
+            let uncleaned = parseInt(uncleanedValue.textContent) - 1;
+            let cleaned = parseInt(cleanedValue.textContent) + 1;
+            
+            uncleanedValue.textContent = uncleaned;
+            cleanedValue.textContent = cleaned;
+        } else {
+            alert(data.message || '更新失败');
+        }
+    })
+    .catch(error => console.error('Error:', error));
+    {% else %}
+    alert('您没有权限执行此操作');
+    {% endif %}
+}
+
+// 导出记录功能
+document.querySelector('.export-btn a').addEventListener('click', function(e) {
+    // 显示导出中提示
+    const originalText = this.innerHTML;
+    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 导出中...';
+    
+    // 5秒后恢复原始文本
+    setTimeout(() => {
+        this.innerHTML = originalText;
+    }, 5000);
+    
+    // 不阻止默认行为，让浏览器正常进行下载
+});
+</script>
+{% endblock %} 

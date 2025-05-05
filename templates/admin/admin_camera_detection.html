@@ -1,0 +1,1212 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}摄像头实时视频流识别 - 结构损伤的高级识别和绘图{% endblock %}
+
+{% block extra_css %}
+<style>
+    .camera-section {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .result-section {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .instruction-section {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .camera-area {
+        border: 2px dashed #d1d1d1;
+        border-radius: 10px;
+        padding: 50px 30px;
+        text-align: center;
+        background-color: #f8f9fa;
+        height: 400px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .camera-live {
+        width: 100%;
+        height: 100%;
+        border-radius: 10px;
+        background-color: #000;
+        display: none;
+        object-fit: cover;
+    }
+    
+    .camera-icon {
+        font-size: 3rem;
+        color: #6c757d;
+        margin-bottom: 20px;
+    }
+    
+    .camera-text {
+        color: #6c757d;
+        margin-bottom: 15px;
+    }
+    
+    .btn-detection {
+        width: 100%;
+        padding: 12px;
+        font-weight: 500;
+        font-size: 1.1rem;
+    }
+    
+    .result-placeholder {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        height: 300px;
+        color: #6c757d;
+    }
+    
+    .result-placeholder-icon {
+        font-size: 5rem;
+        margin-bottom: 20px;
+        color: #adb5bd;
+    }
+    
+    .camera-controls {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 15px;
+    }
+    
+    .camera-controls .btn-group {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .detection-alert {
+        background-color: #fef2f2;
+        border-left: 4px solid #dc3545;
+        padding: 10px 15px;
+        margin-top: 15px;
+        border-radius: 4px;
+        display: none;
+    }
+    
+    .detection-alert.active {
+        display: flex;
+        align-items: center;
+    }
+    
+    .alert-icon {
+        color: #dc3545;
+        font-size: 1.2rem;
+        margin-right: 10px;
+    }
+    
+    .instruction-list {
+        padding-left: 20px;
+    }
+    
+    .instruction-list li {
+        margin-bottom: 10px;
+        color: #495057;
+    }
+    
+    .camera-info {
+        margin-top: 15px;
+        display: flex;
+        justify-content: space-between;
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    
+    .tip-box {
+        background-color: #e7f5ff;
+        border-left: 4px solid #0d6efd;
+        padding: 10px 15px;
+        margin-top: 20px;
+        border-radius: 4px;
+    }
+
+    #main-content{
+        margin-top: 60px;
+    }
+    
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    @media (max-width: 768px) {
+        .instruction-section {
+            margin-top: 20px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 引入侧边栏 -->
+{% include "admin/admin_base_sider.html" %}
+
+<!-- 主内容区 -->
+<div class="main-with-sidebar" id="main-content">
+    <div class="mt-4 px-3">
+        <div class="page-header">
+            <h2 class="mb-0">摄像头实时视频流识别</h2>
+            <button class="btn btn-outline-secondary" id="resetBtn">
+                <i class="fas fa-redo me-1"></i> 重置
+            </button>
+        </div>
+        
+        <div class="row">
+            <!-- 左侧摄像头区域 -->
+            <div class="col-md-8">
+                <div class="camera-section">
+                    <h5 class="mb-3">摄像头实时监控</h5>
+                    <div class="camera-area" id="cameraPlaceholder">
+                        <div class="camera-icon">
+                            <i class="fas fa-video"></i>
+                        </div>
+                        <h5 class="camera-text">点击"开始监控"按钮启动摄像头进行实时检测</h5>
+                    </div>
+                    <video id="cameraLive" class="camera-live" autoplay></video>
+                    
+                    <div class="camera-controls">
+                        <div class="btn-group">
+                            <button class="btn btn-primary" id="startCamera">
+                                <i class="fas fa-video me-2"></i> 开始监控
+                            </button>
+                            <button class="btn btn-danger" id="stopCamera" disabled>
+                                <i class="fas fa-stop-circle me-2"></i> 停止监控
+                            </button>
+                        </div>
+                        
+                        <!-- 注释掉截图和录像按钮 
+                        <div class="btn-group">
+                            <button class="btn btn-outline-secondary" id="captureBtn" disabled>
+                                <i class="fas fa-camera me-2"></i> 截图
+                            </button>
+                            <button class="btn btn-outline-secondary" id="recordBtn" disabled>
+                                <i class="fas fa-record-vinyl me-2"></i> 录制
+                            </button>
+                        </div>
+                        -->
+                    </div>
+                    
+                    <div class="detection-alert" id="detectionAlert">
+                        <span class="alert-icon"><i class="fas fa-exclamation-triangle"></i></span>
+                        <strong>检测到水面垃圾！</strong> <span id="alertTime"></span>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <i class="fas fa-info-circle me-2"></i>
+                        开始监控后，系统将使用 YOLOv8 模型实时分析摄像头视频流，检测水面垃圾。如检测到垃圾，系统将标记时间点并发出警报。
+                    </div>
+                </div>
+                
+                <div class="result-section">
+                    <h5 class="mb-3">实时检测结果</h5>
+                    <div class="result-placeholder" id="resultPlaceholder">
+                        <div class="result-placeholder-icon">
+                            <i class="fas fa-camera-retro"></i>
+                        </div>
+                        <p>点击"开始监控"按钮启动摄像头</p>
+                    </div>
+                    <div id="resultContainer" class="d-none">
+                        <!-- 检测结果将在这里显示 -->
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            摄像头实时监控中，检测结果将在右侧实时显示
+                        </div>
+                        
+                        <!-- 添加结果图像显示区域 -->
+                        <div class="mt-3">
+                            <h6>实时检测图像:</h6>
+                            <img id="detectionResultImage" class="img-fluid rounded" src="" alt="检测结果" style="display: none; max-width: 100%; border: 1px solid #ddd;">
+                        </div>
+                        
+                        <div class="camera-info">
+                            <div>状态: <span id="cameraStatus">监控中</span></div>
+                            <div>分辨率: <span id="cameraResolution">1280x720</span></div>
+                            <div>FPS: <span id="cameraFps">30</span></div>
+                            <div>运行时间: <span id="cameraRuntime">00:00:00</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧使用说明 -->
+            <div class="col-md-4">
+                <div class="instruction-section">
+                    <h5 class="mb-3">使用说明</h5>
+                    <ol class="instruction-list">
+                        <li>点击"开始监控"按钮启动摄像头</li>
+                        <li>系统将使用YOLOv8深度学习模型实时分析视频流</li>
+                        <li>检测过程将在右侧显示实时结果</li>
+                        <li>如检测到水面垃圾，系统将标记时间点并自动发出警报</li>
+                    </ol>
+                    
+                    <div class="alert alert-info mt-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <span>请确保摄像头已正确连接并允许浏览器访问摄像头权限</span>
+                    </div>
+                    
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <span>实时监控需要较高的计算资源，如有卡顿请降低摄像头分辨率</span>
+                    </div>
+                    
+                    <div class="mt-4" id="liveResult">
+                        <h5 class="mb-3">实时检测结果</h5>
+                        <div class="text-center mb-4" id="resultIcon">
+                            <div class="result-placeholder-icon">
+                                <i class="fas fa-video"></i>
+                            </div>
+                            <p class="text-muted">点击"开始监控"按钮启动摄像头</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 高亮当前导航项
+        highlightCurrentNavItem();
+        
+        const cameraPlaceholder = document.getElementById('cameraPlaceholder');
+        const cameraLive = document.getElementById('cameraLive');
+        const startCamera = document.getElementById('startCamera');
+        const stopCamera = document.getElementById('stopCamera');
+        // 注释掉截图和录像按钮变量
+        // const captureBtn = document.getElementById('captureBtn');
+        // const recordBtn = document.getElementById('recordBtn');
+        const resultPlaceholder = document.getElementById('resultPlaceholder');
+        const resultContainer = document.getElementById('resultContainer');
+        const resetBtn = document.getElementById('resetBtn');
+        const detectionAlert = document.getElementById('detectionAlert');
+        const alertTime = document.getElementById('alertTime');
+        const cameraStatus = document.getElementById('cameraStatus');
+        const cameraResolution = document.getElementById('cameraResolution');
+        const cameraFps = document.getElementById('cameraFps');
+        const cameraRuntime = document.getElementById('cameraRuntime');
+        const resultIcon = document.getElementById('resultIcon');
+        const detectionResultImage = document.getElementById('detectionResultImage');
+        
+        let stream = null;
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let isRecording = false;
+        let runtimeInterval = null;
+        let startTime = null;
+        let detectionInterval = null;
+        let isDetecting = false;
+        let lastDetectedObjects = [];
+        let lastFramesWithObjects = []; // 记录包含检测对象的帧
+        let canvasContext = null;
+        let canvas = null;
+        let recordedBlob = null;  // 存储录制的视频Blob
+        let detectionRecordId = null;  // 存储检测记录ID
+        let recordingDuration = 0;
+        let recordingInterval = null;
+        let currentSessionId = null;  // 保存当前检测会话ID
+        
+        // 开始摄像头监控
+        startCamera.addEventListener('click', function() {
+            // 请求摄像头权限
+            navigator.mediaDevices.getUserMedia({ 
+                video: {
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                    facingMode: 'user'
+                }, 
+                audio: false 
+            })
+            .then(function(mediaStream) {
+                stream = mediaStream;
+                
+                // 显示摄像头视频
+                cameraLive.srcObject = stream;
+                cameraLive.style.display = 'block';
+                cameraPlaceholder.style.display = 'none';
+                
+                // 创建Canvas
+                if (!canvas) {
+                    canvas = document.createElement('canvas');
+                    document.body.appendChild(canvas);
+                    canvas.style.display = 'none';
+                }
+                
+                // 更新按钮状态
+                startCamera.disabled = true;
+                stopCamera.disabled = false;
+                // captureBtn.disabled = false;
+                // recordBtn.disabled = false;
+                
+                // 显示结果区域
+                resultPlaceholder.classList.add('d-none');
+                resultContainer.classList.remove('d-none');
+                
+                // 更新结果图标
+                resultIcon.innerHTML = `
+                    <div class="d-flex justify-content-center mb-2">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    <p class="text-muted">分析中...</p>
+                `;
+                
+                // 开始计时
+                startTime = new Date();
+                runtimeInterval = setInterval(updateRuntime, 1000);
+                
+                // 开始检测
+                startDetection();
+
+                // 开始录制视频
+                startRecording(mediaStream);
+            })
+            .catch(function(err) {
+                console.error('无法访问摄像头: ', err);
+                alert('无法访问摄像头，请确保您已授权浏览器使用摄像头并且摄像头已正确连接。');
+            });
+        });
+        
+        // 开始录制视频
+        function startRecording(stream) {
+            recordedChunks = [];
+            const options = { mimeType: 'video/webm;codecs=vp9' };
+            
+            try {
+                mediaRecorder = new MediaRecorder(stream, options);
+            } catch (e) {
+                console.error('创建MediaRecorder失败:', e);
+                try {
+                    // 尝试使用其他编码格式
+                    mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+                } catch (e2) {
+                    console.error('创建MediaRecorder再次失败:', e2);
+                    alert('您的浏览器不支持视频录制功能');
+                    return;
+                }
+            }
+            
+            mediaRecorder.ondataavailable = function(event) {
+                if (event.data && event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+            };
+            
+            mediaRecorder.onstop = function() {
+                recordedBlob = new Blob(recordedChunks, { type: 'video/webm' });
+                console.log('录制完成，视频大小:', recordedBlob.size);
+                
+                // 在停止监控时，将会调用saveRecordingToServer函数
+            };
+            
+            // 每10秒保存一次，以防万一
+            mediaRecorder.start(10000);
+            console.log('视频录制已开始');
+        }
+        
+        // 停止摄像头监控
+        stopCamera.addEventListener('click', function() {
+            if (isDetecting) {
+                // 保存当前会话ID，用于后续请求
+                const finalSessionId = currentSessionId;
+                
+                // 停止检测前获取最后一次检测结果
+                const finalDetectionResults = {
+                    objects: lastDetectedObjects,
+                    timestamp: new Date().toISOString()
+                };
+                
+                // 停止检测
+                stopDetection();
+                
+                // 停止录制并保存
+                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    mediaRecorder.stop();
+                    
+                    // 等待媒体录制器完全停止
+                    setTimeout(() => {
+                        if (recordedBlob) {
+                            // 创建FormData以便上传二进制数据
+                            const formData = new FormData();
+                            
+                            // 添加会话ID
+                            formData.append('session_id', finalSessionId);
+                            
+                            // 将Blob添加为文件
+                            const timestamp = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-');
+                            const videoFileName = `camera_recording_${timestamp}.webm`;
+                            formData.append('video', recordedBlob, videoFileName);
+                            
+                            // 添加检测结果
+                            formData.append('detection_results', JSON.stringify(finalDetectionResults));
+                            formData.append('total_objects', finalDetectionResults.objects ? finalDetectionResults.objects.length : 0);
+                            formData.append('duration', getDurationInSeconds());
+                            
+                            // 添加处理参数 - 用保存的帧创建视频
+                            formData.append('process_video', 'true');
+                            formData.append('use_saved_frames', 'true');
+                            
+                            // 显示上传进度
+                            const progressAlert = document.createElement('div');
+                            progressAlert.className = 'alert alert-info mt-3';
+                            progressAlert.innerHTML = `
+                                <i class="fas fa-spinner fa-spin me-2"></i>
+                                正在处理视频和检测数据...
+                            `;
+                            resultContainer.appendChild(progressAlert);
+                            
+                            console.log("正在发送会话ID创建视频:", finalSessionId);
+                            
+                            // 发送到服务器
+                            fetch('/admin/api/camera/save_recording', {
+                                method: 'POST',
+                                body: formData
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    console.log('视频保存成功，服务器返回数据:', data);
+                                    
+                                    // 更新进度提示
+                                    progressAlert.className = 'alert alert-success mt-3';
+                                    progressAlert.innerHTML = `
+                                        <i class="fas fa-check-circle me-2"></i>
+                                        视频和检测数据已保存！记录ID: ${data.record_id}
+                                        <div class="mt-2">
+                                            <button class="btn btn-sm btn-primary preview-btn" data-id="${data.record_id}">
+                                                <i class="fas fa-play me-1"></i> 预览录制内容
+                                            </button>
+                                        </div>
+                                    `;
+                                    
+                                    // 保存记录ID便于后续操作
+                                    detectionRecordId = data.record_id;
+                                    
+                                    // 添加预览按钮事件监听器
+                                    const previewBtn = progressAlert.querySelector('.preview-btn');
+                                    if (previewBtn) {
+                                        previewBtn.addEventListener('click', function() {
+                                            openPreviewModal(data.record_id, data.original_video_url, data.result_video_url);
+                                        });
+                                    }
+                                } else {
+                                    progressAlert.className = 'alert alert-danger mt-3';
+                                    progressAlert.innerHTML = `
+                                        <i class="fas fa-exclamation-circle me-2"></i>
+                                        保存失败: ${data.message || '未知错误'}
+                                    `;
+                                }
+                            })
+                            .catch(error => {
+                                console.error('保存录制内容失败:', error);
+                                progressAlert.className = 'alert alert-danger mt-3';
+                                progressAlert.innerHTML = `
+                                    <i class="fas fa-exclamation-circle me-2"></i>
+                                    保存失败: ${error.message || '网络错误'}
+                                `;
+                            });
+                        }
+                    }, 500);
+                }
+            }
+            
+            stopCameraStream();
+            
+            // 重置按钮状态
+            startCamera.disabled = false;
+            stopCamera.disabled = true;
+            // captureBtn.disabled = true;
+            // recordBtn.disabled = true;
+            
+            // 停止计时
+            clearInterval(runtimeInterval);
+            
+            // 更新结果图标
+            resultIcon.innerHTML = `
+                <div class="result-placeholder-icon">
+                    <i class="fas fa-video-slash"></i>
+                </div>
+                <p class="text-muted">摄像头已停止</p>
+            `;
+        });
+        
+        // 获取录制时长（秒）
+        function getDurationInSeconds() {
+            if (!startTime) return 0;
+            
+            const now = new Date();
+            const diffMs = now - startTime;
+            return Math.floor(diffMs / 1000);
+        }
+        
+        // 打开预览模态框
+        function openPreviewModal(recordId, originalVideoUrl, resultVideoUrl) {
+            // 创建模态框（如果还不存在）
+            if (!document.getElementById('videoPreviewModal')) {
+                const modalHtml = `
+                    <div class="modal fade" id="videoPreviewModal" tabindex="-1" aria-labelledby="videoPreviewModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="videoPreviewModalLabel">视频预览</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h6>原始视频</h6>
+                                            <video id="originalVideo" controls class="img-fluid mb-3 border rounded" controlsList="nodownload">
+                                                <!-- source将动态添加 -->
+                                                您的浏览器不支持视频标签
+                                            </video>
+                                            <div id="originalVideoError" class="alert alert-warning d-none">
+                                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                                无法播放原始视频。请尝试下载后查看。
+                                            </div>
+                                            <a id="downloadOriginalVideo" class="btn btn-sm btn-outline-primary" href="#" download target="_blank">
+                                                <i class="fas fa-download me-1"></i> 下载原始视频
+                                            </a>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6>检测结果视频</h6>
+                                            <video id="resultVideo" controls class="img-fluid mb-3 border rounded" controlsList="nodownload">
+                                                <!-- source将动态添加 -->
+                                                您的浏览器不支持视频标签
+                                            </video>
+                                            <div id="resultVideoError" class="alert alert-warning d-none">
+                                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                                无法播放处理后视频。请尝试下载后查看。
+                                            </div>
+                                            <a id="downloadProcessedVideo" class="btn btn-sm btn-outline-primary" href="#" download target="_blank">
+                                                <i class="fas fa-download me-1"></i> 下载处理后视频
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div id="detectionInfo" class="mt-3"></div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                const modalDiv = document.createElement('div');
+                modalDiv.innerHTML = modalHtml;
+                document.body.appendChild(modalDiv);
+                
+                // 初始化Bootstrap模态框
+                const videoModal = new bootstrap.Modal(document.getElementById('videoPreviewModal'));
+            }
+            
+            // 获取DOM元素
+            const originalVideo = document.getElementById('originalVideo');
+            const resultVideo = document.getElementById('resultVideo');
+            const detectionInfo = document.getElementById('detectionInfo');
+            const originalVideoError = document.getElementById('originalVideoError');
+            const resultVideoError = document.getElementById('resultVideoError');
+            const downloadOriginalVideo = document.getElementById('downloadOriginalVideo');
+            const downloadProcessedVideo = document.getElementById('downloadProcessedVideo');
+            
+            // 清空视频源
+            originalVideo.innerHTML = '';
+            resultVideo.innerHTML = '';
+            
+            // 重置错误提示
+            originalVideoError.classList.add('d-none');
+            resultVideoError.classList.add('d-none');
+            
+            // 确保URL格式正确
+            const baseUrl = window.location.origin;
+            
+            // 处理原始视频URL
+            let origUrl = originalVideoUrl;
+            if (origUrl && !origUrl.startsWith('http') && !origUrl.startsWith('/')) {
+                origUrl = '/' + origUrl;
+            }
+            if (origUrl && !origUrl.startsWith('http')) {
+                origUrl = baseUrl + origUrl;
+            }
+            
+            // 处理结果视频URL
+            let resultUrl = resultVideoUrl;
+            if (resultUrl && !resultUrl.startsWith('http') && !resultUrl.startsWith('/')) {
+                resultUrl = '/' + resultUrl;
+            }
+            if (resultUrl && !resultUrl.startsWith('http')) {
+                resultUrl = baseUrl + resultUrl;
+            }
+            
+            console.log('原始视频URL:', origUrl);
+            console.log('处理后视频URL:', resultUrl);
+            
+            // 设置下载链接
+            downloadOriginalVideo.href = origUrl;
+            downloadProcessedVideo.href = resultUrl;
+            
+            // 视频文件扩展名
+            const getFileExt = (url) => {
+                if (!url) return '';
+                return url.split('.').pop().toLowerCase();
+            };
+            
+            // 确定MIME类型
+            const getMimeType = (ext) => {
+                switch (ext) {
+                    case 'mp4': return 'video/mp4';
+                    case 'webm': return 'video/webm';
+                    case 'ogg': return 'video/ogg';
+                    case 'avi': return 'video/x-msvideo';
+                    case 'mov': return 'video/quicktime';
+                    case 'mkv': return 'video/x-matroska';
+                    default: return 'video/mp4';
+                }
+            };
+            
+            // 添加原始视频源
+            if (origUrl) {
+                const ext = getFileExt(origUrl);
+                const mimeType = getMimeType(ext);
+                
+                console.log('原始视频MIME类型:', mimeType);
+                
+                // 直接设置视频源
+                originalVideo.src = origUrl;
+                originalVideo.type = mimeType;
+                
+                // 添加错误处理
+                originalVideo.onerror = () => {
+                    console.error('原始视频加载失败:', origUrl);
+                    originalVideoError.classList.remove('d-none');
+                };
+                
+                // 尝试加载视频
+                originalVideo.load();
+                
+                // 添加视频播放事件监听
+                originalVideo.oncanplay = () => {
+                    console.log('原始视频已准备好播放');
+                    originalVideoError.classList.add('d-none');
+                };
+            }
+            
+            // 添加结果视频源
+            if (resultUrl) {
+                const ext = getFileExt(resultUrl);
+                const mimeType = getMimeType(ext);
+                
+                console.log('结果视频MIME类型:', mimeType);
+                
+                // 直接设置视频源
+                resultVideo.src = resultUrl;
+                resultVideo.type = mimeType;
+                
+                // 添加错误处理
+                resultVideo.onerror = () => {
+                    console.error('结果视频加载失败:', resultUrl);
+                    resultVideoError.classList.remove('d-none');
+                };
+                
+                // 尝试加载视频
+                resultVideo.load();
+                
+                // 添加视频播放事件监听
+                resultVideo.oncanplay = () => {
+                    console.log('结果视频已准备好播放');
+                    resultVideoError.classList.add('d-none');
+                };
+            }
+            
+            // 获取检测记录详情
+            fetch(`/admin/api/detection_records?record_id=${recordId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.records && data.records.length > 0) {
+                        const record = data.records[0];
+                        
+                        // 更新检测信息
+                        detectionInfo.innerHTML = `
+                            <div class="alert alert-info">
+                                <h6>检测信息</h6>
+                                <p>检测时间: ${record.timestamp || '未知'}</p>
+                                <p>检测对象: ${record.total_objects || 0} 个</p>
+                                <p>处理时间: ${record.duration ? record.duration.toFixed(2) + '秒' : '未知'}</p>
+                                <p>状态: ${record.is_cleaned ? '已处理' : '未处理'}</p>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('获取检测记录详情失败:', error);
+                    detectionInfo.innerHTML = `
+                        <div class="alert alert-warning">
+                            <p>获取检测信息失败: ${error.message || '未知错误'}</p>
+                        </div>
+                    `;
+                });
+            
+            // 显示模态框
+            const videoModal = bootstrap.Modal.getInstance(document.getElementById('videoPreviewModal')) || 
+                              new bootstrap.Modal(document.getElementById('videoPreviewModal'));
+            videoModal.show();
+        }
+        
+        // 重置按钮功能
+        resetBtn.addEventListener('click', function() {
+            // 停止检测
+            stopDetection();
+            
+            // 停止摄像头
+            stopCameraStream();
+            
+            // 重置界面
+            cameraLive.style.display = 'none';
+            cameraPlaceholder.style.display = 'flex';
+            resultPlaceholder.classList.remove('d-none');
+            resultContainer.classList.add('d-none');
+            detectionAlert.classList.remove('active');
+            
+            // 重置按钮状态
+            startCamera.disabled = false;
+            stopCamera.disabled = true;
+            // captureBtn.disabled = true;
+            // recordBtn.disabled = true;
+            
+            // 停止计时
+            clearInterval(runtimeInterval);
+            
+            // 重置结果图标
+            resultIcon.innerHTML = `
+                <div class="result-placeholder-icon">
+                    <i class="fas fa-video"></i>
+                </div>
+                <p class="text-muted">点击"开始监控"按钮启动摄像头</p>
+            `;
+        });
+        
+        // 停止摄像头流
+        function stopCameraStream() {
+            if (stream) {
+                stream.getTracks().forEach(track => {
+                    track.stop();
+                });
+                stream = null;
+                cameraLive.srcObject = null;
+                cameraLive.style.display = 'none';
+                cameraPlaceholder.style.display = 'flex';
+            }
+            
+            // 如果正在录制，停止录制
+            if (isRecording && mediaRecorder) {
+                mediaRecorder.stop();
+            }
+        }
+        
+        // 开始实时检测
+        function startDetection() {
+            if (isDetecting) return;
+            
+            isDetecting = true;
+            
+            // 为当前检测会话创建唯一标识符
+            const sessionId = 'session_' + new Date().getTime();
+            console.log("创建检测会话:", sessionId);
+            
+            // 保存会话ID到全局变量，用于停止检测时使用
+            currentSessionId = sessionId;
+            
+            // 初始化Canvas
+            if (!canvas) {
+                canvas = document.createElement('canvas');
+                canvas.style.display = 'none';
+                document.body.appendChild(canvas);
+            }
+            canvasContext = canvas.getContext('2d');
+            
+            // 设置interval进行定期检测
+            detectFrame(sessionId);
+            detectionInterval = setInterval(() => detectFrame(sessionId), 200); // 每200ms检测一次，提高实时性
+        }
+        
+        // 停止检测
+        function stopDetection() {
+            if (!isDetecting) return;
+            
+            isDetecting = false;
+            clearInterval(detectionInterval);
+            
+            // 清除结果图像
+            if (detectionResultImage) {
+                detectionResultImage.src = '';
+                detectionResultImage.style.display = 'none';
+            }
+        }
+        
+        // 检测单帧
+        function detectFrame(sessionId) {
+            if (!isDetecting || !stream) return;
+            
+            try {
+                // 设置Canvas大小
+                canvas.width = cameraLive.videoWidth;
+                canvas.height = cameraLive.videoHeight;
+                
+                // 绘制当前帧到Canvas
+                canvasContext.drawImage(cameraLive, 0, 0, canvas.width, canvas.height);
+                
+                // 获取图像数据
+                const imageData = canvas.toDataURL('image/jpeg');
+                
+                // 发送到API
+                fetch('/api/detect/camera_frame', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        image: imageData,
+                        confidence: 0.5, // 设置检测的置信度阈值
+                        draw_boxes: true, // 请求API绘制检测框
+                        save_result: true, // 请求API保存检测结果
+                        save_frames: true, // 保存处理后的帧
+                        session_id: sessionId // 传递会话ID
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 更新FPS显示
+                        cameraFps.textContent = data.fps;
+                        
+                        // 检查是否检测到水面垃圾
+                        checkForDetectedObjects(data.objects);
+                        
+                        // 更新结果图像
+                        if (data.result_image) {
+                            const resultImage = document.getElementById('detectionResultImage');
+                            resultImage.src = data.result_image;
+                            resultImage.style.display = 'block';
+                        }
+                        
+                        // 更新结果
+                        updateDetectionResults(data);
+                    } else {
+                        console.error('检测失败:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('API请求错误:', error);
+                });
+            } catch (error) {
+                console.error('帧处理错误:', error);
+            }
+        }
+        
+        // 检查是否检测到目标物体
+        function checkForDetectedObjects(objects) {
+            lastDetectedObjects = objects || [];
+            
+            // 如果检测到物体，显示警报并记录帧
+            if (objects && objects.length > 0) {
+                detectionAlert.classList.add('active');
+                const now = new Date();
+                alertTime.textContent = now.toLocaleTimeString();
+                
+                // 记录带有物体的帧信息
+                const frameInfo = {
+                    timestamp: now.toISOString(),
+                    objects: objects.map(obj => ({
+                        label: obj.label,
+                        confidence: obj.confidence,
+                        bbox: obj.bbox || null // 确保包含边界框数据
+                    }))
+                };
+                
+                // 将当前帧添加到帧历史记录中
+                lastFramesWithObjects.push(frameInfo);
+                
+                // 限制帧历史记录的大小，避免内存过度使用
+                if (lastFramesWithObjects.length > 100) {
+                    lastFramesWithObjects = lastFramesWithObjects.slice(-100);
+                }
+                
+                // 更新结果图标
+                updateAlertIcon(objects);
+            } else {
+                detectionAlert.classList.remove('active');
+                
+                // 更新正常监控状态
+                resultIcon.innerHTML = `
+                    <div class="alert alert-success text-center">
+                        <i class="fas fa-check-circle fa-2x mb-2"></i>
+                        <p class="mb-0">实时监控中</p>
+                        <p class="mb-0">未检测到异常行为</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // 更新警报图标
+        function updateAlertIcon(objects) {
+            // 构建检测到的物体描述
+            let objectsList = objects.map(obj => 
+                `<li>${obj.label}: ${obj.confidence}%</li>`
+            ).join('');
+            
+            resultIcon.innerHTML = `
+                <div class="alert alert-danger text-center">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                    <p class="mb-0"><strong>检测到目标物体！</strong></p>
+                    <p class="mb-0">时间: ${new Date().toLocaleTimeString()}</p>
+                    <p class="mb-0">检测到 ${objects.length} 个目标:</p>
+                    <ul class="text-start">${objectsList}</ul>
+                </div>
+            `;
+        }
+        
+        // 更新检测结果
+        function updateDetectionResults(data) {
+            cameraStatus.textContent = '监控中';
+            cameraResolution.textContent = `${canvas.width}x${canvas.height}`;
+            
+            // 如果定制更复杂的结果显示，可以在这里添加
+        }
+        
+        // 更新运行时间
+        function updateRuntime() {
+            if (startTime) {
+                const now = new Date();
+                const diff = new Date(now - startTime);
+                const hours = diff.getUTCHours().toString().padStart(2, '0');
+                const minutes = diff.getUTCMinutes().toString().padStart(2, '0');
+                const seconds = diff.getUTCSeconds().toString().padStart(2, '0');
+                cameraRuntime.textContent = `${hours}:${minutes}:${seconds}`;
+            }
+        }
+        
+        // 高亮当前导航项函数
+        function highlightCurrentNavItem() {
+            // 移除所有导航项的激活状态
+            const navItems = document.querySelectorAll('.sidebar-menu .nav-link');
+            navItems.forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // 获取摄像头实时识别导航项并添加激活状态
+            const cameraNavItem = document.querySelector('.sidebar-menu .nav-link[href*="camera_detection"]');
+            if (cameraNavItem) {
+                cameraNavItem.classList.add('active');
+            }
+        }
+
+        // 摄像头截图
+        // captureBtn.addEventListener('click', function() {
+        //     if (stream) {
+        //         // 创建画布
+        //         const canvas = document.createElement('canvas');
+        //         const context = canvas.getContext('2d');
+        //         canvas.width = cameraLive.videoWidth;
+        //         canvas.height = cameraLive.videoHeight;
+        //         
+        //         // 绘制当前帧
+        //         context.drawImage(cameraLive, 0, 0, canvas.width, canvas.height);
+        //         
+        //         // 获取图像数据
+        //         const imageData = canvas.toDataURL('image/jpeg');
+        //         
+        //         // 将图像发送到服务器保存
+        //         fetch('/admin/api/camera/save_capture', {
+        //             method: 'POST',
+        //             headers: {
+        //                 'Content-Type': 'application/json',
+        //             },
+        //             body: JSON.stringify({ 
+        //                 image: imageData,
+        //                 total_objects: lastDetectedObjects ? lastDetectedObjects.length : 0,
+        //                 detection_results: {
+        //                     objects: lastDetectedObjects || [],
+        //                     timestamp: new Date().toISOString()
+        //                 },
+        //                 process_image: true,   // 请求服务器处理图像
+        //                 draw_boxes: true       // 在处理后的图像中绘制边界框
+        //             })
+        //         })
+        //         .then(response => response.json())
+        //         .then(data => {
+        //             if (data.success) {
+        //                 const alert = document.createElement('div');
+        //                 alert.className = 'alert alert-success mt-3';
+        //                 alert.innerHTML = `
+        //                     <i class="fas fa-check-circle me-2"></i>
+        //                     截图已保存！记录ID: ${data.record_id}
+        //                     <button class="btn btn-sm btn-primary ms-2 preview-capture-btn" data-id="${data.record_id}">
+        //                         <i class="fas fa-eye me-1"></i> 查看截图
+        //                     </button>
+        //                 `;
+        //                 resultContainer.appendChild(alert);
+        //                 
+        //                 // 添加预览按钮事件监听器
+        //                 const previewBtn = alert.querySelector('.preview-capture-btn');
+        //                 if (previewBtn) {
+        //                     previewBtn.addEventListener('click', function() {
+        //                         openCapturePreviewModal(data.record_id, data.original_url, data.result_url);
+        //                     });
+        //                 }
+        //                 
+        //                 // 3秒后自动隐藏提示
+        //                 setTimeout(() => {
+        //                     alert.style.display = 'none';
+        //                 }, 3000);
+        //             } else {
+        //                 alert('保存失败：' + (data.message || '未知错误'));
+        //             }
+        //         })
+        //         .catch(error => {
+        //             console.error('保存截图失败:', error);
+        //             alert('保存失败: ' + error.message);
+        //         });
+        //     }
+        // });
+        
+        // 手动录制视频
+        // recordBtn.addEventListener('click', function() {
+        //     if (stream && !isRecording) {
+        //         // 开始录制
+        //         recordedChunks = [];
+        //         const options = { mimeType: 'video/webm;codecs=vp9' };
+        //         
+        //         try {
+        //             mediaRecorder = new MediaRecorder(stream, options);
+        //         } catch (e) {
+        //             try {
+        //                 // 尝试使用其他编码格式
+        //                 mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+        //             } catch (e2) {
+        //                 console.error('创建MediaRecorder失败:', e2);
+        //                 alert('您的浏览器不支持视频录制功能');
+        //                 return;
+        //             }
+        //         }
+        //         
+        //         mediaRecorder.ondataavailable = function(e) {
+        //             if (e.data.size > 0) {
+        //                 recordedChunks.push(e.data);
+        //             }
+        //         };
+        //         
+        //         mediaRecorder.onstop = function() {
+        //             const manualBlob = new Blob(recordedChunks, { type: 'video/webm' });
+        //             
+        //             // 显示保存进度
+        //             const progressAlert = document.createElement('div');
+        //             progressAlert.className = 'alert alert-info mt-3';
+        //             progressAlert.innerHTML = `
+        //                 <i class="fas fa-spinner fa-spin me-2"></i>
+        //                 保存手动录制的视频...
+        //             `;
+        //             resultContainer.appendChild(progressAlert);
+        //             
+        //             // 准备检测结果
+        //             const manualDetectionResults = {
+        //                 objects: lastDetectedObjects || [],
+        //                 frames_with_objects: lastFramesWithObjects || [],
+        //                 timestamp: new Date().toISOString()
+        //             };
+        //             
+        //             // 创建FormData对象
+        //             const formData = new FormData();
+        //             const timestamp = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-');
+        //             const videoFileName = `manual_recording_${timestamp}.webm`;
+        //             formData.append('video', manualBlob, videoFileName);
+        //             formData.append('detection_results', JSON.stringify(manualDetectionResults));
+        //             formData.append('total_objects', lastDetectedObjects ? lastDetectedObjects.length : 0);
+        //             formData.append('duration', recordingDuration);
+        //             formData.append('is_manual', 'true');
+        //             
+        //             // 添加处理参数
+        //             formData.append('process_video', 'true'); // 请求服务器处理视频
+        //             formData.append('draw_boxes', 'true');    // 在处理后的视频中绘制边界框
+        //             
+        //             // 发送到服务器
+        //             fetch('/admin/api/camera/save_recording', {
+        //                 method: 'POST',
+        //                 body: formData
+        //             })
+        //             .then(response => response.json())
+        //             .then(data => {
+        //                 if (data.success) {
+        //                     // 更新进度提示
+        //                     progressAlert.className = 'alert alert-success mt-3';
+        //                     progressAlert.innerHTML = `
+        //                         <i class="fas fa-check-circle me-2"></i>
+        //                         手动录制的视频已保存！记录ID: ${data.record_id}
+        //                         <div class="mt-2">
+        //                             <button class="btn btn-sm btn-primary preview-btn" data-id="${data.record_id}">
+        //                                 <i class="fas fa-play me-1"></i> 预览录制内容
+        //                             </button>
+        //                         </div>
+        //                     `;
+        //                     
+        //                     // 保存记录ID便于后续操作
+        //                     detectionRecordId = data.record_id;
+        //                     
+        //                     // 添加预览按钮事件监听器
+        //                     const previewBtn = progressAlert.querySelector('.preview-btn');
+        //                     if (previewBtn) {
+        //                         previewBtn.addEventListener('click', function() {
+        //                             openPreviewModal(data.record_id, data.original_video_url, data.result_video_url);
+        //                         });
+        //                     }
+        //                 } else {
+        //                     progressAlert.className = 'alert alert-danger mt-3';
+        //                     progressAlert.innerHTML = `
+        //                         <i class="fas fa-exclamation-circle me-2"></i>
+        //                         保存失败: ${data.message || '未知错误'}
+        //                     `;
+        //                 }
+        //             })
+        //             .catch(error => {
+        //                 console.error('保存手动录制视频失败:', error);
+        //                 progressAlert.className = 'alert alert-danger mt-3';
+        //                 progressAlert.innerHTML = `
+        //                     <i class="fas fa-exclamation-circle me-2"></i>
+        //                     保存失败: ${error.message || '网络错误'}
+        //                 `;
+        //             });
+        //         };
+        //         
+        //         // 开始录制
+        //         mediaRecorder.start();
+        //     }
+        // });
+    });
+</script>
+{% endblock %}

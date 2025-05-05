@@ -1,0 +1,316 @@
+<!-- 侧边栏组件 -->
+<div class="sidebar">
+    <!-- <div class="sidebar-header">
+        <h5 class="mb-0">水面垃圾识别系统</h5>
+        <small>管理员后台</small>
+    </div> -->
+    <div class="sidebar-content">
+        <!-- 系统导航 -->
+        <a href="{{ url_for('admin.admin_home') }}" class="sidebar-item {% if request.path == '/admin/home' %}active{% endif %}" id="nav-home">
+            <i class="fas fa-home"></i> 首页
+        </a>
+        
+        <!-- 检测功能 -->
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-category">检测功能</div>
+        
+        <a href="{{ url_for('admin.admin_image_detection') }}" class="sidebar-item {% if request.path == '/admin/admin_image_detection' %}active{% endif %}" id="nav-image-detection">
+            <i class="fas fa-image"></i> 图片导入识别
+        </a>
+        
+        <a href="{{ url_for('admin.admin_multi_image') }}" class="sidebar-item {% if request.path == '/admin/admin_multi_image' %}active{% endif %}" id="nav-multi-image">
+            <i class="fas fa-images"></i> 图片批量导入识别
+        </a>
+        
+        <a href="{{ url_for('admin.admin_video_detection') }}" class="sidebar-item {% if request.path == '/admin/admin_video_detection' %}active{% endif %}" id="nav-video">
+            <i class="fas fa-video"></i> 视频导入识别
+        </a>
+        
+        <a href="{{ url_for('admin.admin_camera_detection') }}" class="sidebar-item {% if request.path == '/admin/camera_detection' %}active{% endif %}" id="nav-camera">
+            <i class="fas fa-camera"></i> 摄像头实时视频流识别
+        </a>
+        
+        <!-- 记录管理 -->
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-category">数据管理</div>
+        
+        <a href="{{ url_for('admin.admin_detection_records') }}" class="sidebar-item {% if request.path == '/admin/detection_records' %}active{% endif %}" id="nav-records">
+            <i class="fas fa-history"></i> 识别记录
+        </a>
+        
+        <!-- 系统功能 -->
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-category">系统功能</div>
+        
+        <a href="{{ url_for('admin.admin_user_management') }}" class="sidebar-item {% if request.path == '/admin/admin_user_management' %}active{% endif %}" id="nav-user-management">
+            <i class="fas fa-users"></i> 用户管理
+        </a>
+        
+        <a href="{{ url_for('admin.admin_scientific') }}" class="sidebar-item {% if request.path == '/admin/admin_scientific' %}active{% endif %}" id="nav-scientific">
+            <i class="fas fa-book-open"></i> 科普知识管理
+        </a>
+        
+        <a href="{{ url_for('admin.admin_alert_management') }}" class="sidebar-item {% if request.path == '/admin/admin_alert_management' %}active{% endif %}" id="nav-alert">
+            <i class="fas fa-bell"></i> 警报功能
+        </a>
+        
+        <!-- 隐藏的保存设置菜单项 
+        <a href="{{ url_for('admin.settings') }}" class="sidebar-item {% if request.path == '/admin/settings' %}active{% endif %}" id="nav-settings">
+            <i class="fas fa-cog"></i> 保存设置
+        </a>
+        -->
+        
+        <a href="{{ url_for('admin.admin_logout') }}" class="sidebar-item" id="nav-logout">
+            <i class="fas fa-sign-out-alt"></i> 退出
+        </a>
+    </div>
+    
+    <!-- 折叠按钮 -->
+    <div class="sidebar-toggle">
+        <i class="fas fa-chevron-left"></i>
+    </div>
+</div>
+
+<!-- 侧边栏样式 -->
+<style>
+    :root {
+        --sidebar-width: 250px;
+        --header-height: 60px;
+    }
+    
+    /* 侧边栏样式 */
+    .sidebar {
+        position: fixed;
+        top: var(--header-height);
+        left: 0;
+        height: calc(100vh - var(--header-height));
+        width: var(--sidebar-width);
+        background-color: #fff;
+        border-right: 1px solid rgba(0, 0, 0, 0.05);
+        z-index: 999;
+        overflow-y: auto;
+        transition: all 0.3s ease;
+    }
+    
+    .sidebar-header {
+        padding: 15px 20px;
+        border-bottom: 1px solid #eee;
+        text-align: center;
+    }
+    
+    .sidebar-content {
+        padding: 0;
+    }
+    
+    .sidebar-item {
+        display: block;
+        padding: 12px 20px;
+        color: #495057;
+        text-decoration: none;
+        transition: all 0.3s;
+        border-left: 3px solid transparent;
+    }
+    
+    .sidebar-item:hover {
+        background-color: rgba(13, 110, 253, 0.05);
+        color: var(--theme-color);
+    }
+    
+    .sidebar-item.active {
+        color: var(--theme-color);
+        background-color: rgba(13, 110, 253, 0.1);
+        border-left-color: var(--theme-color);
+        font-weight: 500;
+    }
+    
+    .sidebar-item i {
+        width: 25px;
+        text-align: center;
+        margin-right: 8px;
+    }
+    
+    .sidebar-divider {
+        height: 1px;
+        margin: 10px 0;
+        background-color: #eee;
+    }
+    
+    .sidebar-category {
+        padding: 10px 20px;
+        font-size: 0.8rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    /* 主内容区样式 */
+    .main-with-sidebar {
+        margin-left: var(--sidebar-width);
+        transition: all 0.3s ease;
+        padding: 20px;
+        min-height: calc(100vh - var(--header-height));
+        margin-top: 0;
+    }
+    
+    /* 折叠侧边栏按钮 */
+    .sidebar-toggle {
+        position: absolute;
+        top: 50%;
+        right: -15px;
+        width: 30px;
+        height: 30px;
+        background-color: #fff;
+        border: 1px solid #eee;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 1001;
+        transform: translateY(-50%);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+    
+    /* 侧边栏折叠时切换按钮样式 */
+    .sidebar.collapsed {
+        margin-left: -250px;
+    }
+    
+    .sidebar.collapsed + .sidebar-toggle {
+        right: -15px;
+        left: 15px;
+    }
+    
+    /* 响应式适配 */
+    @media (max-width: 992px) {
+        .sidebar {
+            margin-left: -250px;
+        }
+        .main-with-sidebar {
+            margin-left: 0;
+        }
+        .sidebar.active {
+            margin-left: 0;
+        }
+    }
+</style>
+
+<!-- 侧边栏脚本 -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 侧边栏折叠切换
+        const sidebarToggle = document.querySelector('.sidebar-toggle');
+        const sidebar = document.querySelector('.sidebar');
+        const mainContent = document.getElementById('main-content');
+        
+        // 创建一个独立的切换按钮（当侧边栏隐藏时使用）
+        const toggleContainer = document.createElement('div');
+        toggleContainer.className = 'sidebar-toggle-container';
+        toggleContainer.style.cssText = `
+            position: fixed;
+            top: calc(50% + var(--header-height)/2);
+            left: 15px;
+            z-index: 1000;
+            transform: translateY(-50%);
+            transition: all 0.3s ease;
+            display: none;
+        `;
+        
+        const toggleButton = document.createElement('div');
+        toggleButton.className = 'sidebar-toggle-floating';
+        toggleButton.style.cssText = `
+            width: 30px;
+            height: 30px;
+            background-color: #fff;
+            border: 1px solid #eee;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        `;
+        
+        const toggleIcon = document.createElement('i');
+        toggleIcon.className = 'fas fa-chevron-right';
+        toggleButton.appendChild(toggleIcon);
+        toggleContainer.appendChild(toggleButton);
+        document.body.appendChild(toggleContainer);
+        
+        if (sidebarToggle && sidebar && mainContent) {
+            sidebarToggle.addEventListener('click', function() {
+                toggleSidebar();
+            });
+            
+            toggleButton.addEventListener('click', function() {
+                toggleSidebar();
+            });
+        }
+        
+        function toggleSidebar() {
+            if (sidebar.classList.contains('collapsed')) {
+                // 展开侧边栏
+                sidebar.classList.remove('collapsed');
+                sidebar.style.marginLeft = '0';
+                mainContent.style.marginLeft = 'var(--sidebar-width)';
+                document.querySelector('.sidebar-toggle i').className = 'fas fa-chevron-left';
+                toggleContainer.style.display = 'none';
+            } else {
+                // 折叠侧边栏
+                sidebar.classList.add('collapsed');
+                sidebar.style.marginLeft = '-250px';
+                mainContent.style.marginLeft = '0';
+                document.querySelector('.sidebar-toggle i').className = 'fas fa-chevron-right';
+                toggleContainer.style.display = 'block';
+            }
+        }
+        
+        // 检查URL中的折叠状态参数
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('sidebar') === 'collapsed') {
+            toggleSidebar();
+        }
+        
+        // 根据当前页面URL设置导航激活状态
+        function setActiveNavItem() {
+            const currentPath = window.location.pathname;
+            const navItems = document.querySelectorAll('.sidebar-item');
+            
+            // 清除所有激活状态
+            navItems.forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // 根据当前路径设置激活项
+            if (currentPath.includes('image_detection')) {
+                document.getElementById('nav-image-detection').classList.add('active');
+            } else if (currentPath.includes('admin_multi_image')) {
+                document.getElementById('nav-multi-image').classList.add('active');
+            } else if (currentPath.includes('video_detection')) {
+                document.getElementById('nav-video').classList.add('active');
+            } else if (currentPath.includes('camera_detection')) {
+                document.getElementById('nav-camera').classList.add('active');
+            } else if (currentPath.includes('detection_records')) {
+                document.getElementById('nav-records').classList.add('active');
+            } else if (currentPath.includes('alert_management')) {
+                document.getElementById('nav-alert').classList.add('active');
+            } else if (currentPath.includes('user_management')) {
+                document.getElementById('nav-user-management').classList.add('active');
+            } else if (currentPath.includes('scientific')) {
+                document.getElementById('nav-scientific').classList.add('active');
+            } else if (currentPath.includes('settings')) {
+                document.getElementById('nav-settings').classList.add('active');
+            } else if (currentPath.includes('home')) {
+                document.getElementById('nav-home').classList.add('active');
+            }
+            
+            // 调试信息 - 帮助排查问题
+            console.log('当前路径:', currentPath);
+            console.log('科普知识管理菜单ID:', document.getElementById('nav-scientific') ? '存在' : '不存在');
+        }
+        
+        // 页面加载完成后设置导航状态
+        setActiveNavItem();
+    });
+</script>

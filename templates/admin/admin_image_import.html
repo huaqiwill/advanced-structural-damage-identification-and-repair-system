@@ -1,0 +1,361 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}图片导入识别 - 结构损伤的高级识别和绘图{% endblock %}
+
+{% block extra_css %}
+<style>
+    .upload-section {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .result-section {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .upload-area {
+        border: 2px dashed #d1d1d1;
+        border-radius: 10px;
+        padding: 50px 30px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background-color: #f8f9fa;
+    }
+    
+    .upload-area:hover {
+        border-color: var(--theme-color);
+        background-color: #f0f7ff;
+    }
+    
+    .upload-icon {
+        font-size: 3rem;
+        color: #6c757d;
+        margin-bottom: 20px;
+    }
+    
+    .upload-text {
+        color: #6c757d;
+        margin-bottom: 15px;
+    }
+    
+    .upload-formats {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    
+    .btn-detection {
+        width: 100%;
+        padding: 12px;
+        font-weight: 500;
+        font-size: 1.1rem;
+    }
+    
+    .result-placeholder {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        height: 300px;
+        color: #6c757d;
+    }
+    
+    .result-placeholder-icon {
+        font-size: 5rem;
+        margin-bottom: 20px;
+        color: #adb5bd;
+    }
+    
+    .target-section {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        height: 100%;
+    }
+    
+    .target-icon {
+        font-size: 4rem;
+        color: #adb5bd;
+        margin-bottom: 15px;
+    }
+
+    #main-content{
+        margin-top: 60px;
+    }
+    
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    @media (max-width: 768px) {
+        .target-section {
+            margin-top: 20px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 引入侧边栏 -->
+{% include "admin/admin_base_sider.html" %}
+
+<!-- 主内容区 -->
+<div class="main-with-sidebar" id="main-content">
+    <div class="mt-4 px-3">
+        <div class="page-header">
+            <h2 class="mb-0">图片导入识别</h2>
+            <button class="btn btn-outline-secondary" id="resetBtn">
+                <i class="fas fa-redo me-1"></i> 重置
+            </button>
+        </div>
+        
+        <div class="row">
+            <!-- 左侧上传区域 -->
+            <div class="col-md-7">
+                <div class="upload-section">
+                    <h5 class="mb-3">图片上传</h5>
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <h5 class="upload-text">拖拽图片到此处或点击上传</h5>
+                        <p class="upload-formats">支持JPG、PNG、GIF格式的图片</p>
+                        <input type="file" id="fileInput" class="d-none" accept="image/jpeg,image/png,image/gif">
+                    </div>
+                    
+                    <!-- 添加检测选项 -->
+                    <div class="mt-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">检测选项</h6>
+                                <div class="row mt-3">
+                                    <div class="col-md-6">
+                                        <label for="confidenceSlider" class="form-label">置信度阈值: <span id="confidenceValue">50%</span></label>
+                                        <input type="range" class="form-range" id="confidenceSlider" min="0" max="100" value="50">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" value="" id="showLabels" checked>
+                                            <label class="form-check-label" for="showLabels">
+                                                显示标签
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" value="" id="showConfidence" checked>
+                                            <label class="form-check-label" for="showConfidence">
+                                                显示置信度
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button class="btn btn-primary btn-detection" id="startDetection" disabled>
+                            <i class="fas fa-search me-2"></i> 开始检测
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="result-section">
+                    <h5 class="mb-3">检测结果</h5>
+                    <div class="result-placeholder" id="resultPlaceholder">
+                        <div class="result-placeholder-icon">
+                            <i class="fas fa-image"></i>
+                        </div>
+                        <p>上传图片后将在此处显示检测结果</p>
+                    </div>
+                    <div id="resultContainer" class="d-none">
+                        <!-- 检测结果显示区域 -->
+                        <img id="resultImage" class="img-fluid rounded" alt="检测结果">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧目标选择 -->
+            <div class="col-md-5">
+                <div class="target-section">
+                    <h5 class="mb-3">目标选择</h5>
+                    <div class="text-center mb-4" id="targetPlaceholder">
+                        <div class="target-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <p class="text-muted">检测完成后可在此处选择特定目标</p>
+                    </div>
+                    <div id="targetsContainer" class="d-none">
+                        <!-- 目标列表将在检测后显示 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 高亮当前导航项
+        highlightCurrentNavItem();
+        
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const startDetection = document.getElementById('startDetection');
+        const resultPlaceholder = document.getElementById('resultPlaceholder');
+        const resultContainer = document.getElementById('resultContainer');
+        const resultImage = document.getElementById('resultImage');
+        const targetPlaceholder = document.getElementById('targetPlaceholder');
+        const targetsContainer = document.getElementById('targetsContainer');
+        const resetBtn = document.getElementById('resetBtn');
+        const confidenceSlider = document.getElementById('confidenceSlider');
+        const confidenceValue = document.getElementById('confidenceValue');
+        const showLabels = document.getElementById('showLabels');
+        const showConfidence = document.getElementById('showConfidence');
+        
+        // 更新置信度显示
+        confidenceSlider.addEventListener('input', function() {
+            confidenceValue.textContent = this.value + '%';
+        });
+        
+        // 处理文件拖放
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            uploadArea.classList.add('highlight');
+        }
+        
+        function unhighlight() {
+            uploadArea.classList.remove('highlight');
+        }
+        
+        uploadArea.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+        
+        fileInput.addEventListener('change', function() {
+            handleFiles(this.files);
+        });
+        
+        function handleFiles(files) {
+            const file = files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    targetPlaceholder.innerHTML = '';
+                    targetPlaceholder.appendChild(img);
+                    targetsContainer.classList.remove('d-none');
+                    startDetection.disabled = false;
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        startDetection.addEventListener('click', function() {
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('请先选择一张图片');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('image', file);
+            formData.append('confidence_threshold', confidenceSlider.value / 100);
+            formData.append('show_labels', showLabels.checked);
+            formData.append('show_confidence', showConfidence.checked);
+            
+            startDetection.disabled = true;
+            startDetection.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 识别中...';
+            
+            fetch('/admin/api/detect_image', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                startDetection.innerHTML = '开始识别';
+                startDetection.disabled = false;
+                
+                if (data.success) {
+                    resultImage.src = data.image_url;
+                    resultPlaceholder.innerHTML = '';
+                    resultPlaceholder.appendChild(resultImage);
+                    resultContainer.classList.remove('d-none');
+                } else {
+                    alert('识别失败: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                startDetection.innerHTML = '开始识别';
+                startDetection.disabled = false;
+                alert('识别请求失败，请重试');
+            });
+        });
+        
+        // 重置按钮功能
+        resetBtn.addEventListener('click', function() {
+            // 重置所有状态
+            fileInput.value = '';
+            resultPlaceholder.classList.remove('d-none');
+            resultContainer.classList.add('d-none');
+            targetPlaceholder.classList.remove('d-none');
+            targetsContainer.classList.add('d-none');
+            startDetection.disabled = true;
+            startDetection.innerHTML = '<i class="fas fa-search me-2"></i> 开始检测';
+            
+            // 重置上传区域
+            uploadArea.querySelector('.upload-text').textContent = '拖拽图片到此处或点击上传';
+            uploadArea.querySelector('.upload-formats').textContent = '支持JPG、PNG、GIF格式的图片';
+        });
+        
+        // 高亮当前导航项函数
+        function highlightCurrentNavItem() {
+            // 移除所有导航项的激活状态
+            const navItems = document.querySelectorAll('.sidebar-menu .nav-link');
+            navItems.forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // 获取图片识别导航项并添加激活状态
+            const imageDetectionNavItem = document.querySelector('.sidebar-menu .nav-link[href*="image_detection"]');
+            if (imageDetectionNavItem) {
+                imageDetectionNavItem.classList.add('active');
+            }
+        }
+    });
+</script>
+{% endblock %} 

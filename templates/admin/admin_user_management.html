@@ -1,0 +1,608 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}用户管理 - 结构损伤的高级识别和绘图{% endblock %}
+
+{% block extra_css %}
+<style>
+    .user-section {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .users-table th {
+        font-weight: 600;
+        background-color: #f8f9fa;
+    }
+    
+    .badge-admin {
+        background-color: #0d6efd;
+        color: white;
+    }
+    
+    .badge-user {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    .badge-active {
+        background-color: #198754;
+        color: white;
+    }
+    
+    .badge-inactive {
+        background-color: #dc3545;
+        color: white;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .search-box {
+        max-width: 400px;
+        margin-left: auto;
+    }
+    
+    #main-content{
+        margin-top: 60px;
+    }
+    
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    @media (max-width: 768px) {
+        .search-box {
+            margin-top: 10px;
+            margin-left: 0;
+            max-width: 100%;
+        }
+        
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 引入侧边栏 -->
+{% include "admin/admin_base_sider.html" %}
+
+<!-- 主内容区 -->
+<div class="main-with-sidebar" id="main-content">
+    <div class="mt-4 px-3">
+        <div class="page-header">
+            <h2 class="mb-0">用户管理</h2>
+            <button class="btn btn-primary" id="addUserBtn">
+                <i class="fas fa-user-plus me-1"></i> 添加用户
+            </button>
+        </div>
+        
+        <div class="user-section">
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+                <h5 class="mb-0 me-3">用户列表</h5>
+                <div class="search-box">
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="搜索用户..." id="searchUser">
+                        <button class="btn btn-outline-secondary" type="button">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-hover users-table">
+                    <thead>
+                        <tr>
+                            <th>用户名</th>
+                            <th>注册时间</th>
+                            <th>角色</th>
+                            <th>状态</th>
+                            <th>最后活动时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- 表格数据通过JavaScript动态加载 -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <div id="pagination-info">
+                    显示 1 至 3 共 3 条记录
+                </div>
+                <nav aria-label="Page navigation" id="pagination-container">
+                    <ul class="pagination pagination-sm mb-0" id="pagination">
+                        <!-- 分页按钮将通过JavaScript动态生成 -->
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加用户模态框 -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addUserModalLabel">添加用户</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addUserForm">
+                    <div class="mb-3">
+                        <label for="nameInput" class="form-label">用户名</label>
+                        <input type="text" class="form-control" id="nameInput" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="passwordInput" class="form-label">密码</label>
+                        <input type="password" class="form-control" id="passwordInput" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmPasswordInput" class="form-label">确认密码</label>
+                        <input type="password" class="form-control" id="confirmPasswordInput" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveUserBtn">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑用户模态框 -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editUserModalLabel">编辑用户</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editUserForm">
+                    <input type="hidden" id="editUserId">
+                    <input type="hidden" id="editIsAdmin">
+                    <div class="mb-3">
+                        <label for="editNameInput" class="form-label">用户名</label>
+                        <input type="text" class="form-control" id="editNameInput" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editPasswordInput" class="form-label">密码</label>
+                        <input type="password" class="form-control" id="editPasswordInput" placeholder="留空表示不修改">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editConfirmPasswordInput" class="form-label">确认密码</label>
+                        <input type="password" class="form-control" id="editConfirmPasswordInput" placeholder="留空表示不修改">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editStatusSelect" class="form-label">状态</label>
+                        <select class="form-select" id="editStatusSelect" required>
+                            <option value="active">活跃</option>
+                            <option value="inactive">禁用</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="updateUserBtn">更新</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 删除用户确认模态框 -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteUserModalLabel">确认删除</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>确定要删除此用户吗？此操作不可逆。</p>
+                <input type="hidden" id="deleteUserId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">删除</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 高亮当前导航项
+        highlightCurrentNavItem();
+        
+        // 获取DOM元素
+        const addUserBtn = document.getElementById('addUserBtn');
+        const saveUserBtn = document.getElementById('saveUserBtn');
+        const updateUserBtn = document.getElementById('updateUserBtn');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        const searchUser = document.getElementById('searchUser');
+        const usersTableBody = document.querySelector('.users-table tbody');
+        
+        // 模态框实例
+        const addUserModal = new bootstrap.Modal(document.getElementById('addUserModal'));
+        const editUserModal = new bootstrap.Modal(document.getElementById('editUserModal'));
+        const deleteUserModal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+        
+        // 加载用户数据
+        loadUsers();
+        
+        // 添加用户按钮点击事件
+        addUserBtn.addEventListener('click', function() {
+            // 重置表单
+            document.getElementById('addUserForm').reset();
+            
+            // 显示模态框
+            addUserModal.show();
+        });
+        
+        // 保存用户按钮点击事件
+        saveUserBtn.addEventListener('click', function() {
+            // 获取表单数据
+            const username = document.getElementById('nameInput').value;
+            const password = document.getElementById('passwordInput').value;
+            const confirmPassword = document.getElementById('confirmPasswordInput').value;
+            
+            // 表单验证
+            if (!username || !password || !confirmPassword) {
+                alert('请填写所有必填字段');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                alert('两次输入的密码不一致');
+                return;
+            }
+            
+            // 发送添加用户请求
+            saveUserBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> 保存中...';
+            saveUserBtn.disabled = true;
+            
+            fetch('/api/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password,
+                    is_admin: false  // 确保新用户始终是普通用户
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                saveUserBtn.innerHTML = '保存';
+                saveUserBtn.disabled = false;
+                
+                if (data.success) {
+                    // 关闭模态框
+                    addUserModal.hide();
+                    
+                    // 刷新用户列表
+                    loadUsers();
+                    
+                    // 显示成功消息
+                    alert('用户添加成功');
+                } else {
+                    alert('添加用户失败: ' + data.message);
+                }
+            })
+            .catch(error => {
+                saveUserBtn.innerHTML = '保存';
+                saveUserBtn.disabled = false;
+                alert('添加用户时发生错误: ' + error);
+            });
+        });
+        
+        // 加载用户列表函数
+        function loadUsers() {
+            // 显示加载状态
+            usersTableBody.innerHTML = '<tr><td colspan="6" class="text-center">加载中...</td></tr>';
+            
+            fetch('/api/users')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 清空表格
+                        usersTableBody.innerHTML = '';
+                        
+                        // 填充用户数据
+                        if (data.data.length === 0) {
+                            usersTableBody.innerHTML = '<tr><td colspan="6" class="text-center">暂无用户数据</td></tr>';
+                        } else {
+                            data.data.forEach(user => {
+                                // 默认所有用户都是普通用户
+                                const isAdmin = user.is_admin === true;
+                                
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td>${user.username}</td>
+                                    <td>${user.created_at}</td>
+                                    <td><span class="badge badge-${isAdmin ? 'admin' : 'user'}">${isAdmin ? '管理员' : '普通用户'}</span></td>
+                                    <td><span class="badge badge-active">活跃</span></td>
+                                    <td>${user.last_activity}</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn btn-sm btn-outline-primary edit-user-btn" data-id="${user.id}">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger delete-user-btn" data-id="${user.id}" data-is-admin="${isAdmin}" 
+                                                ${isAdmin ? 'disabled title="不能删除管理员账号"' : ''}>
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                `;
+                                usersTableBody.appendChild(row);
+                            });
+                            
+                            // 为新按钮添加事件监听
+                            addEventListenersToButtons();
+                            
+                            // 更新分页信息
+                            updatePagination(data.data.length);
+                        }
+                    } else {
+                        usersTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">加载失败: ${data.message}</td></tr>`;
+                    }
+                })
+                .catch(error => {
+                    usersTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">加载出错: ${error}</td></tr>`;
+                });
+        }
+        
+        // 为表格中的按钮添加事件监听
+        function addEventListenersToButtons() {
+            // 为编辑按钮添加事件
+            document.querySelectorAll('.edit-user-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const userId = this.dataset.id;
+                    
+                    // 获取用户数据
+                    fetch(`/api/users/${userId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                const user = data.data;
+                                const isAdmin = user.is_admin === true;
+                                
+                                // 填充表单
+                                document.getElementById('editUserId').value = user.id;
+                                document.getElementById('editNameInput').value = user.username;
+                                document.getElementById('editPasswordInput').value = '';
+                                document.getElementById('editConfirmPasswordInput').value = '';
+                                document.getElementById('editIsAdmin').value = isAdmin ? 'true' : 'false';
+                                document.getElementById('editStatusSelect').value = 'active';
+                                
+                                // 显示模态框
+                                editUserModal.show();
+                            } else {
+                                alert('获取用户信息失败: ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            alert('获取用户信息时发生错误: ' + error);
+                        });
+                });
+            });
+            
+            // 为删除按钮添加事件
+            document.querySelectorAll('.delete-user-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const userId = this.dataset.id;
+                    const isAdminUser = this.dataset.isAdmin === 'true';
+                    
+                    if (isAdminUser) {
+                        alert('不能删除管理员账号！');
+                        return;
+                    }
+                    
+                    // 设置要删除的用户ID
+                    document.getElementById('deleteUserId').value = userId;
+                    
+                    // 显示确认模态框
+                    deleteUserModal.show();
+                });
+            });
+        }
+        
+        // 更新分页信息
+        function updatePagination(totalUsers) {
+            const paginationInfo = document.getElementById('pagination-info');
+            const pagination = document.getElementById('pagination');
+            const pageSize = 10; // 每页显示10条记录
+            
+            // 更新显示信息
+            paginationInfo.textContent = `显示 1 至 ${totalUsers} 共 ${totalUsers} 条记录`;
+            
+            // 清空分页
+            pagination.innerHTML = '';
+            
+            // 只有当总数超过每页显示数量时才显示分页
+            if (totalUsers > pageSize) {
+                const totalPages = Math.ceil(totalUsers / pageSize);
+                
+                // 添加"上一页"按钮
+                const prevLi = document.createElement('li');
+                prevLi.className = 'page-item disabled';
+                prevLi.innerHTML = '<a class="page-link" href="#" tabindex="-1" aria-disabled="true">上一页</a>';
+                pagination.appendChild(prevLi);
+                
+                // 添加页码按钮
+                for (let i = 1; i <= totalPages; i++) {
+                    const pageLi = document.createElement('li');
+                    pageLi.className = i === 1 ? 'page-item active' : 'page-item';
+                    pageLi.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+                    pagination.appendChild(pageLi);
+                }
+                
+                // 添加"下一页"按钮
+                const nextLi = document.createElement('li');
+                nextLi.className = 'page-item';
+                nextLi.innerHTML = '<a class="page-link" href="#">下一页</a>';
+                pagination.appendChild(nextLi);
+            }
+        }
+        
+        // 更新用户按钮点击事件
+        updateUserBtn.addEventListener('click', function() {
+            // 获取表单数据
+            const userId = document.getElementById('editUserId').value;
+            const username = document.getElementById('editNameInput').value;
+            const password = document.getElementById('editPasswordInput').value;
+            const confirmPassword = document.getElementById('editConfirmPasswordInput').value;
+            const isAdmin = document.getElementById('editIsAdmin').value === 'true';
+            const status = document.getElementById('editStatusSelect').value;
+            
+            // 表单验证
+            if (!username) {
+                alert('请填写用户名');
+                return;
+            }
+            
+            if (password && password !== confirmPassword) {
+                alert('两次输入的密码不一致');
+                return;
+            }
+            
+            // 构建请求数据
+            const userData = {
+                username: username,
+                is_admin: isAdmin,
+                status: status
+            };
+            
+            // 如果输入了密码，添加到请求数据中
+            if (password) {
+                userData.password = password;
+            }
+            
+            // 发送更新用户请求
+            updateUserBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> 更新中...';
+            updateUserBtn.disabled = true;
+            
+            fetch(`/api/users/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(userData),
+            })
+            .then(response => response.json())
+            .then(data => {
+                updateUserBtn.innerHTML = '更新';
+                updateUserBtn.disabled = false;
+                
+                if (data.success) {
+                    // 关闭模态框
+                    editUserModal.hide();
+                    
+                    // 刷新用户列表
+                    loadUsers();
+                    
+                    // 显示成功消息
+                    alert('用户更新成功');
+                } else {
+                    alert('更新用户失败: ' + data.message);
+                }
+            })
+            .catch(error => {
+                updateUserBtn.innerHTML = '更新';
+                updateUserBtn.disabled = false;
+                alert('更新用户时发生错误: ' + error);
+            });
+        });
+        
+        // 确认删除按钮点击事件
+        confirmDeleteBtn.addEventListener('click', function() {
+            const userId = document.getElementById('deleteUserId').value;
+            
+            // 发送删除用户请求
+            confirmDeleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> 删除中...';
+            confirmDeleteBtn.disabled = true;
+            
+            fetch(`/api/users/${userId}`, {
+                method: 'DELETE',
+            })
+            .then(response => response.json())
+            .then(data => {
+                confirmDeleteBtn.innerHTML = '删除';
+                confirmDeleteBtn.disabled = false;
+                
+                if (data.success) {
+                    // 关闭模态框
+                    deleteUserModal.hide();
+                    
+                    // 刷新用户列表
+                    loadUsers();
+                    
+                    // 显示成功消息
+                    alert('用户删除成功');
+                } else {
+                    alert('删除用户失败: ' + data.message);
+                }
+            })
+            .catch(error => {
+                confirmDeleteBtn.innerHTML = '删除';
+                confirmDeleteBtn.disabled = false;
+                alert('删除用户时发生错误: ' + error);
+            });
+        });
+        
+        // 搜索功能
+        searchUser.addEventListener('keyup', function() {
+            const searchText = this.value.toLowerCase();
+            const rows = document.querySelectorAll('.users-table tbody tr');
+            
+            rows.forEach(row => {
+                if (row.cells.length < 2) return; // 跳过加载中或错误消息行
+                
+                const username = row.cells[0].textContent.toLowerCase();
+                const name = row.cells[1].textContent.toLowerCase();
+                
+                if (username.includes(searchText) || name.includes(searchText)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+        
+        // 高亮当前导航项函数
+        function highlightCurrentNavItem() {
+            // 移除所有导航项的激活状态
+            const navItems = document.querySelectorAll('.sidebar-menu .nav-link');
+            navItems.forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // 获取用户管理导航项并添加激活状态
+            const userManagementItem = document.querySelector('.sidebar-menu .nav-link[href*="user_management"]');
+            if (userManagementItem) {
+                userManagementItem.classList.add('active');
+            }
+        }
+    });
+</script>
+{% endblock %} 

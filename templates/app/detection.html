@@ -1,0 +1,177 @@
+{% extends "app/base.html" %}
+
+{% block title %}检测 - 结构损伤检测{% endblock %}
+
+{% block extra_css %}
+<style>
+    .detection-container {
+        position: relative;
+        width: 100%;
+        margin-bottom: 20px;
+    }
+    
+    .camera-preview {
+        width: 100%;
+        height: auto;
+        border-radius: 12px;
+        background-color: #000;
+    }
+    
+    .detection-controls {
+        position: absolute;
+        bottom: 20px;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+    }
+    
+    .control-btn {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    .control-btn i {
+        font-size: 24px;
+        color: #333;
+    }
+    
+    .detection-result {
+        margin-top: 20px;
+    }
+    
+    .result-card {
+        background-color: #fff;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+    
+    .damage-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+    }
+    
+    .damage-high {
+        background-color: #dc3545;
+    }
+    
+    .damage-medium {
+        background-color: #ffc107;
+    }
+    
+    .damage-low {
+        background-color: #28a745;
+    }
+</style>
+{% endblock %}
+
+{% block app_content %}
+<div class="detection-container">
+    <!-- 摄像头预览 -->
+    <video id="cameraPreview" class="camera-preview" autoplay playsinline></video>
+    
+    <!-- 控制按钮 -->
+    <div class="detection-controls">
+        <button id="switchCamera" class="control-btn">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+        <button id="captureBtn" class="control-btn">
+            <i class="fas fa-camera"></i>
+        </button>
+        <button id="toggleFlash" class="control-btn">
+            <i class="fas fa-bolt"></i>
+        </button>
+    </div>
+</div>
+
+<!-- 检测结果 -->
+<div class="detection-result">
+    <div class="result-card">
+        <h5 class="mb-3">检测结果</h5>
+        <div id="resultList">
+            <!-- 结果将通过JavaScript动态添加 -->
+        </div>
+    </div>
+</div>
+
+<!-- 操作按钮 -->
+<div class="row g-3">
+    <div class="col-6">
+        <button id="uploadImage" class="mobile-btn btn-theme">
+            <i class="fas fa-upload me-2"></i>上传图片
+        </button>
+    </div>
+    <div class="col-6">
+        <button id="saveResult" class="mobile-btn btn-theme">
+            <i class="fas fa-save me-2"></i>保存结果
+        </button>
+    </div>
+</div>
+
+<!-- 检测历史 -->
+<div class="mobile-card mt-4">
+    <h5 class="mb-3">最近检测</h5>
+    <div id="recentDetections">
+        <!-- 最近检测记录将通过JavaScript动态添加 -->
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let stream = null;
+    let currentCamera = 'environment';
+    
+    // 初始化摄像头
+    async function initCamera() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: currentCamera
+                }
+            });
+            document.getElementById('cameraPreview').srcObject = stream;
+        } catch (err) {
+            console.error('摄像头初始化失败:', err);
+            alert('无法访问摄像头，请检查权限设置');
+        }
+    }
+    
+    // 切换摄像头
+    document.getElementById('switchCamera').addEventListener('click', function() {
+        currentCamera = currentCamera === 'user' ? 'environment' : 'user';
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+        initCamera();
+    });
+    
+    // 拍照
+    document.getElementById('captureBtn').addEventListener('click', function() {
+        const video = document.getElementById('cameraPreview');
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        
+        // 这里添加检测逻辑
+        // ...
+    });
+    
+    // 初始化
+    initCamera();
+});
+</script>
+{% endblock %} 

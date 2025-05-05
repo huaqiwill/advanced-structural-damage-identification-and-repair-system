@@ -1,0 +1,2457 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}科普内容管理 - 结构损伤的高级识别和绘图{% endblock %}
+
+{% block extra_css %}
+<style>
+    .content-section {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .content-table th {
+        font-weight: 600;
+        background-color: #f8f9fa;
+    }
+    
+    .badge-active {
+        background-color: #198754;
+        color: white;
+    }
+    
+    .badge-hidden {
+        background-color: #dc3545;
+        color: white;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .search-box {
+        max-width: 400px;
+        margin-left: auto;
+    }
+    
+    #main-content{
+        margin-top: 60px;
+    }
+    
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .tab-pane {
+        padding-top: 20px;
+    }
+    
+    .content-preview {
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        padding: 15px;
+        margin-top: 10px;
+        background-color: #f9f9f9;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    .nav-tabs .nav-link {
+        font-weight: 500;
+    }
+    
+    .cke_editable {
+        min-height: 200px;
+    }
+    
+    .faq-item, .quiz-item {
+        background-color: #f9f9f9;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 15px;
+        position: relative;
+    }
+    
+    .faq-item-buttons, .quiz-item-buttons {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        display: flex;
+        gap: 5px;
+    }
+    
+    .type-badge {
+        font-size: 0.8rem;
+        padding: 2px 8px;
+    }
+    
+    @media (max-width: 768px) {
+        .search-box {
+            margin-top: 10px;
+            margin-left: 0;
+            max-width: 100%;
+        }
+        
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 引入侧边栏 -->
+{% include "admin/admin_base_sider.html" %}
+
+<!-- 主内容区 -->
+<div class="main-with-sidebar" id="main-content">
+    <div class="mt-4 px-3">
+        <div class="page-header">
+            <h2 class="mb-0">科普内容管理</h2>
+            <button class="btn btn-primary" id="addContentBtn">
+                <i class="fas fa-plus me-1"></i> 添加内容板块
+            </button>
+        </div>
+        
+        <!-- 内容管理选项卡 -->
+        <ul class="nav nav-tabs" id="contentTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="sections-tab" data-bs-toggle="tab" data-bs-target="#sections" type="button" role="tab" aria-controls="sections" aria-selected="true">
+                    <i class="fas fa-book me-1"></i> 内容板块
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="faqs-tab" data-bs-toggle="tab" data-bs-target="#faqs" type="button" role="tab" aria-controls="faqs" aria-selected="false">
+                    <i class="fas fa-question-circle me-1"></i> 问答管理
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="quizzes-tab" data-bs-toggle="tab" data-bs-target="#quizzes" type="button" role="tab" aria-controls="quizzes" aria-selected="false">
+                    <i class="fas fa-tasks me-1"></i> 测试题目
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="preview-tab" data-bs-toggle="tab" data-bs-target="#preview" type="button" role="tab" aria-controls="preview" aria-selected="false">
+                    <i class="fas fa-eye me-1"></i> 预览
+                </button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="contentTabContent">
+            <!-- 内容板块选项卡 -->
+            <div class="tab-pane fade show active" id="sections" role="tabpanel" aria-labelledby="sections-tab">
+                <div class="content-section">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+                        <h5 class="mb-0 me-3">内容板块列表</h5>
+                        <div class="search-box">
+                            <div class="input-group">
+                                <input type="text" class="form-control" placeholder="搜索内容..." id="searchContent">
+                                <button class="btn btn-outline-secondary" type="button">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover content-table">
+                            <thead>
+                                <tr>
+                                    <th>标题</th>
+                                    <th>内容类型</th>
+                                    <th>位置</th>
+                                    <th>状态</th>
+                                    <th>更新时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="contentTableBody">
+                                <!-- 表格数据通过JavaScript动态加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div id="content-pagination-info">
+                            加载中...
+                        </div>
+                        <nav aria-label="Page navigation" id="content-pagination-container">
+                            <ul class="pagination pagination-sm mb-0" id="content-pagination">
+                                <!-- 分页按钮将通过JavaScript动态生成 -->
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 问答管理选项卡 -->
+            <div class="tab-pane fade" id="faqs" role="tabpanel" aria-labelledby="faqs-tab">
+                <div class="content-section">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+                        <div class="d-flex align-items-center gap-3">
+                            <h5 class="mb-0">问答管理</h5>
+                            <select class="form-select form-select-sm" id="faqSectionSelect" style="max-width: 200px;">
+                                <option value="">选择内容板块</option>
+                                <!-- 选项通过JavaScript动态加载 -->
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" id="addFaqBtn" disabled>
+                            <i class="fas fa-plus me-1"></i> 添加问答
+                        </button>
+                    </div>
+                    
+                    <div id="faqsList" class="mb-4">
+                        <div class="text-center py-4 text-muted">
+                            请选择一个内容板块以管理其问答
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 测试题目选项卡 -->
+            <div class="tab-pane fade" id="quizzes" role="tabpanel" aria-labelledby="quizzes-tab">
+                <div class="content-section">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+                        <div class="d-flex align-items-center gap-3">
+                            <h5 class="mb-0">测试题目</h5>
+                            <select class="form-select form-select-sm" id="quizSectionSelect" style="max-width: 200px;">
+                                <option value="">选择内容板块</option>
+                                <!-- 选项通过JavaScript动态加载 -->
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" id="addQuizBtn" disabled>
+                            <i class="fas fa-plus me-1"></i> 添加题目
+                        </button>
+                    </div>
+                    
+                    <div id="quizzesList" class="mb-4">
+                        <div class="text-center py-4 text-muted">
+                            请选择一个内容板块以管理其测试题目
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 预览选项卡 -->
+            <div class="tab-pane fade" id="preview" role="tabpanel" aria-labelledby="preview-tab">
+                <div class="content-section">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+                        <h5 class="mb-0">内容预览</h5>
+                        <select class="form-select form-select-sm" id="previewSectionSelect" style="max-width: 300px;">
+                            <option value="all">显示所有内容</option>
+                            <!-- 选项通过JavaScript动态加载 -->
+                        </select>
+                    </div>
+                    
+                    <div id="previewContent" class="content-preview mt-3">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">加载预览内容...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加内容板块模态框 -->
+<div class="modal fade" id="addContentModal" tabindex="-1" aria-labelledby="addContentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addContentModalLabel">添加内容板块</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addContentForm">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="sectionIdInput" class="form-label">板块ID</label>
+                            <input type="text" class="form-control" id="sectionIdInput" required placeholder="如: intro, faq, tips">
+                            <div class="form-text">唯一标识符，仅允许英文字母、数字和下划线</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="contentTypeSelect" class="form-label">内容类型</label>
+                            <select class="form-select" id="contentTypeSelect" required>
+                                <option value="text">普通文本</option>
+                                <option value="faq">问答FAQ</option>
+                                <option value="tips">小贴士</option>
+                                <option value="quiz">测试题</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label for="titleInput" class="form-label">标题</label>
+                            <input type="text" class="form-control" id="titleInput" required placeholder="内容标题">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="positionInput" class="form-label">显示位置</label>
+                            <input type="number" class="form-control" id="positionInput" value="0" min="0">
+                            <div class="form-text">数字越小越靠前显示</div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="imagePathInput" class="form-label">图片路径</label>
+                        <input type="text" class="form-control" id="imagePathInput" placeholder="/static/images/example.jpg">
+                        <div class="form-text">相对于网站根目录的图片路径（可选）</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="contentInput" class="form-label">内容</label>
+                        <textarea class="form-control" id="contentInput" rows="8" required></textarea>
+                        <div class="form-text">支持HTML格式</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">状态</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="statusRadio" id="statusActive" value="active" checked>
+                            <label class="form-check-label" for="statusActive">
+                                显示
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="statusRadio" id="statusHidden" value="hidden">
+                            <label class="form-check-label" for="statusHidden">
+                                隐藏
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveContentBtn">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑内容板块模态框 -->
+<div class="modal fade" id="editContentModal" tabindex="-1" aria-labelledby="editContentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editContentModalLabel">编辑内容板块</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editContentForm">
+                    <input type="hidden" id="editSectionId">
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label for="editTitleInput" class="form-label">标题</label>
+                            <input type="text" class="form-control" id="editTitleInput" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editPositionInput" class="form-label">显示位置</label>
+                            <input type="number" class="form-control" id="editPositionInput" value="0" min="0">
+                            <div class="form-text">数字越小越靠前显示</div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editContentTypeSelect" class="form-label">内容类型</label>
+                        <select class="form-select" id="editContentTypeSelect" required>
+                            <option value="text">普通文本</option>
+                            <option value="faq">问答FAQ</option>
+                            <option value="tips">小贴士</option>
+                            <option value="quiz">测试题</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editImagePathInput" class="form-label">图片路径</label>
+                        <input type="text" class="form-control" id="editImagePathInput">
+                        <div class="form-text">相对于网站根目录的图片路径（可选）</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editContentInput" class="form-label">内容</label>
+                        <textarea class="form-control" id="editContentInput" rows="8" required></textarea>
+                        <div class="form-text">支持HTML格式</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">状态</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="editStatusRadio" id="editStatusActive" value="active">
+                            <label class="form-check-label" for="editStatusActive">
+                                显示
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="editStatusRadio" id="editStatusHidden" value="hidden">
+                            <label class="form-check-label" for="editStatusHidden">
+                                隐藏
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="updateContentBtn">更新</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加问答模态框 -->
+<div class="modal fade" id="addFaqModal" tabindex="-1" aria-labelledby="addFaqModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addFaqModalLabel">添加问答</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addFaqForm">
+                    <input type="hidden" id="faqSectionIdInput">
+                    <div class="mb-3">
+                        <label for="questionInput" class="form-label">问题</label>
+                        <input type="text" class="form-control" id="questionInput" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="answerInput" class="form-label">回答</label>
+                        <textarea class="form-control" id="answerInput" rows="5" required></textarea>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="faqPositionInput" class="form-label">显示位置</label>
+                            <input type="number" class="form-control" id="faqPositionInput" value="0" min="0">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">状态</label>
+                            <select class="form-select" id="faqStatusSelect">
+                                <option value="active">显示</option>
+                                <option value="hidden">隐藏</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveFaqBtn">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑问答模态框 -->
+<div class="modal fade" id="editFaqModal" tabindex="-1" aria-labelledby="editFaqModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editFaqModalLabel">编辑问答</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editFaqForm">
+                    <input type="hidden" id="editFaqId">
+                    <div class="mb-3">
+                        <label for="editQuestionInput" class="form-label">问题</label>
+                        <input type="text" class="form-control" id="editQuestionInput" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editAnswerInput" class="form-label">回答</label>
+                        <textarea class="form-control" id="editAnswerInput" rows="5" required></textarea>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editFaqPositionInput" class="form-label">显示位置</label>
+                            <input type="number" class="form-control" id="editFaqPositionInput" value="0" min="0">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">状态</label>
+                            <select class="form-select" id="editFaqStatusSelect">
+                                <option value="active">显示</option>
+                                <option value="hidden">隐藏</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="updateFaqBtn">更新</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加测试题目模态框 -->
+<div class="modal fade" id="addQuizModal" tabindex="-1" aria-labelledby="addQuizModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addQuizModalLabel">添加测试题目</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addQuizForm">
+                    <input type="hidden" id="quizSectionIdInput">
+                    <div class="mb-3">
+                        <label for="quizQuestionInput" class="form-label">题目</label>
+                        <input type="text" class="form-control" id="quizQuestionInput" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">选项</label>
+                        <div id="quizOptionsContainer">
+                            <div class="input-group mb-2">
+                                <span class="input-group-text">A</span>
+                                <input type="text" class="form-control quiz-option" data-option="A" required>
+                            </div>
+                            <div class="input-group mb-2">
+                                <span class="input-group-text">B</span>
+                                <input type="text" class="form-control quiz-option" data-option="B" required>
+                            </div>
+                            <div class="input-group mb-2">
+                                <span class="input-group-text">C</span>
+                                <input type="text" class="form-control quiz-option" data-option="C" required>
+                            </div>
+                            <div class="input-group mb-2">
+                                <span class="input-group-text">D</span>
+                                <input type="text" class="form-control quiz-option" data-option="D" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="quizAnswerSelect" class="form-label">正确答案</label>
+                            <select class="form-select" id="quizAnswerSelect" required>
+                                <option value="">选择正确答案</option>
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                                <option value="D">D</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="quizPositionInput" class="form-label">显示位置</label>
+                            <input type="number" class="form-control" id="quizPositionInput" value="0" min="0">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="quizExplanationInput" class="form-label">解析（可选）</label>
+                        <textarea class="form-control" id="quizExplanationInput" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">状态</label>
+                        <select class="form-select" id="quizStatusSelect">
+                            <option value="active">显示</option>
+                            <option value="hidden">隐藏</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveQuizBtn">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑测试题目模态框 -->
+<div class="modal fade" id="editQuizModal" tabindex="-1" aria-labelledby="editQuizModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editQuizModalLabel">编辑测试题目</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editQuizForm">
+                    <input type="hidden" id="editQuizId">
+                    <div class="mb-3">
+                        <label for="editQuizQuestionInput" class="form-label">题目</label>
+                        <input type="text" class="form-control" id="editQuizQuestionInput" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">选项</label>
+                        <div id="editQuizOptionsContainer">
+                            <div class="input-group mb-2">
+                                <span class="input-group-text">A</span>
+                                <input type="text" class="form-control edit-quiz-option" data-option="A" required>
+                            </div>
+                            <div class="input-group mb-2">
+                                <span class="input-group-text">B</span>
+                                <input type="text" class="form-control edit-quiz-option" data-option="B" required>
+                            </div>
+                            <div class="input-group mb-2">
+                                <span class="input-group-text">C</span>
+                                <input type="text" class="form-control edit-quiz-option" data-option="C" required>
+                            </div>
+                            <div class="input-group mb-2">
+                                <span class="input-group-text">D</span>
+                                <input type="text" class="form-control edit-quiz-option" data-option="D" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editQuizAnswerSelect" class="form-label">正确答案</label>
+                            <select class="form-select" id="editQuizAnswerSelect" required>
+                                <option value="">选择正确答案</option>
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                                <option value="D">D</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editQuizPositionInput" class="form-label">显示位置</label>
+                            <input type="number" class="form-control" id="editQuizPositionInput" value="0" min="0">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editQuizExplanationInput" class="form-label">解析（可选）</label>
+                        <textarea class="form-control" id="editQuizExplanationInput" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">状态</label>
+                        <select class="form-select" id="editQuizStatusSelect">
+                            <option value="active">显示</option>
+                            <option value="hidden">隐藏</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="updateQuizBtn">更新</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 删除确认模态框 -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteConfirmModalLabel">确认删除</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="deleteItemId">
+                <input type="hidden" id="deleteItemType">
+                <p id="deleteConfirmMessage">确定要删除此内容吗？此操作无法撤销。</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">删除</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- CKEditor富文本编辑器 -->
+<script src="https://cdn.ckeditor.com/ckeditor5/34.0.0/classic/ckeditor.js"></script>
+<script>
+// 全局变量
+let contentEditor, editContentEditor;
+let currentSections = [];
+let currentPage = 1;
+let itemsPerPage = 10;
+let cachedFaqs = {}; // 用于缓存不同section的FAQ数据
+
+// 页面加载完成后执行
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化富文本编辑器
+    ClassicEditor
+        .create(document.querySelector('#contentInput'))
+        .then(editor => {
+            contentEditor = editor;
+        })
+        .catch(error => {
+            console.error(error);
+        });
+        
+    ClassicEditor
+        .create(document.querySelector('#editContentInput'))
+        .then(editor => {
+            editContentEditor = editor;
+        })
+        .catch(error => {
+            console.error(error);
+        });
+    
+    // 加载内容板块列表
+    loadContentSections();
+    
+    // 添加内容板块按钮点击事件
+    document.getElementById('addContentBtn').addEventListener('click', function() {
+        resetContentForm();
+        const modal = new bootstrap.Modal(document.getElementById('addContentModal'));
+        modal.show();
+    });
+    
+    // 保存内容板块按钮点击事件
+    document.getElementById('saveContentBtn').addEventListener('click', saveContent);
+    
+    // 更新内容板块按钮点击事件
+    document.getElementById('updateContentBtn').addEventListener('click', updateContent);
+    
+    // 确认删除按钮点击事件
+    document.getElementById('confirmDeleteBtn').addEventListener('click', confirmDelete);
+    
+    // 添加问答按钮点击事件
+    document.getElementById('addFaqBtn').addEventListener('click', function() {
+        const sectionId = document.getElementById('faqSectionSelect').value;
+        if (!sectionId) return;
+        
+        document.getElementById('faqSectionIdInput').value = sectionId;
+        resetFaqForm();
+        const modal = new bootstrap.Modal(document.getElementById('addFaqModal'));
+        modal.show();
+    });
+    
+    // 保存问答按钮点击事件
+    document.getElementById('saveFaqBtn').addEventListener('click', saveFaq);
+    
+    // 更新问答按钮点击事件
+    document.getElementById('updateFaqBtn').addEventListener('click', updateFaq);
+    
+    // 添加测试题目按钮点击事件
+    document.getElementById('addQuizBtn').addEventListener('click', function() {
+        const sectionId = document.getElementById('quizSectionSelect').value;
+        if (!sectionId) return;
+        
+        document.getElementById('quizSectionIdInput').value = sectionId;
+        resetQuizForm();
+        const modal = new bootstrap.Modal(document.getElementById('addQuizModal'));
+        modal.show();
+    });
+    
+    // 保存测试题目按钮点击事件
+    document.getElementById('saveQuizBtn').addEventListener('click', saveQuiz);
+    
+    // 更新测试题目按钮点击事件
+    document.getElementById('updateQuizBtn').addEventListener('click', updateQuiz);
+    
+    // 内容板块选择变化事件 - FAQ选项卡
+    document.getElementById('faqSectionSelect').addEventListener('change', function() {
+        const sectionId = this.value;
+        document.getElementById('addFaqBtn').disabled = !sectionId;
+        
+        if (sectionId) {
+            loadFaqs(sectionId);
+        } else {
+            document.getElementById('faqsList').innerHTML = `
+                <div class="text-center py-4 text-muted">
+                    请选择一个内容板块以管理其问答
+                </div>
+            `;
+        }
+    });
+    
+    // 内容板块选择变化事件 - Quiz选项卡
+    document.getElementById('quizSectionSelect').addEventListener('change', function() {
+        const sectionId = this.value;
+        document.getElementById('addQuizBtn').disabled = !sectionId;
+        
+        if (sectionId) {
+            loadQuizzes(sectionId);
+        } else {
+            document.getElementById('quizzesList').innerHTML = `
+                <div class="text-center py-4 text-muted">
+                    请选择一个内容板块以管理其测试题目
+                </div>
+            `;
+        }
+    });
+    
+    // 内容板块选择变化事件 - 预览选项卡
+    document.getElementById('previewSectionSelect').addEventListener('change', function() {
+        loadPreview(this.value);
+    });
+    
+    // 搜索内容输入框事件
+    document.getElementById('searchContent').addEventListener('input', function() {
+        filterContentTable(this.value);
+    });
+});
+
+/**
+ * 加载内容板块列表
+ */
+function loadContentSections() {
+    fetch('/api/scientific/contents')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                currentSections = data.data;
+                updateSectionSelects(currentSections);
+                renderContentTable(currentSections);
+                loadPreview('all');
+            } else {
+                showToast('error', '加载内容失败：' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('加载内容失败:', error);
+            showToast('error', '加载内容失败：' + error.message);
+        });
+}
+
+/**
+ * 更新板块选择下拉框
+ */
+function updateSectionSelects(sections) {
+    // 更新FAQ选项卡的板块选择
+    const faqSelect = document.getElementById('faqSectionSelect');
+    faqSelect.innerHTML = '<option value="">选择内容板块</option>';
+    
+    // 更新Quiz选项卡的板块选择
+    const quizSelect = document.getElementById('quizSectionSelect');
+    quizSelect.innerHTML = '<option value="">选择内容板块</option>';
+    
+    // 更新Preview选项卡的板块选择
+    const previewSelect = document.getElementById('previewSectionSelect');
+    previewSelect.innerHTML = '<option value="all">显示所有内容</option>';
+    
+    sections.forEach(section => {
+        // 添加到FAQ选择
+        const faqOption = document.createElement('option');
+        faqOption.value = section.id;
+        faqOption.textContent = `${section.title} (${section.section_id})`;
+        faqOption.dataset.sectionId = section.section_id; // 添加自定义数据属性存储section_id
+        faqSelect.appendChild(faqOption);
+        
+        // 添加到Quiz选择
+        const quizOption = document.createElement('option');
+        quizOption.value = section.id;
+        quizOption.textContent = `${section.title} (${section.section_id})`;
+        quizOption.dataset.sectionId = section.section_id; // 添加自定义数据属性存储section_id
+        quizSelect.appendChild(quizOption);
+        
+        // 添加到Preview选择
+        const previewOption = document.createElement('option');
+        previewOption.value = section.section_id;
+        previewOption.textContent = section.title;
+        previewSelect.appendChild(previewOption);
+    });
+}
+
+/**
+ * 渲染内容表格
+ */
+function renderContentTable(sections) {
+    const tableBody = document.getElementById('contentTableBody');
+    tableBody.innerHTML = '';
+    
+    if (sections.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <i class="fas fa-info-circle me-2"></i> 暂无内容，请点击"添加内容板块"按钮添加
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    // 计算当前页的数据
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, sections.length);
+    const pageData = sections.slice(startIndex, endIndex);
+    
+    // 渲染表格内容
+    pageData.forEach(section => {
+        const row = document.createElement('tr');
+        
+        // 格式化类型显示
+        let typeDisplay = '';
+        switch(section.content_type) {
+            case 'text': typeDisplay = '<span class="badge bg-primary type-badge">文本</span>'; break;
+            case 'faq': typeDisplay = '<span class="badge bg-info type-badge">FAQ</span>'; break;
+            case 'tips': typeDisplay = '<span class="badge bg-success type-badge">小贴士</span>'; break;
+            case 'quiz': typeDisplay = '<span class="badge bg-warning text-dark type-badge">测试</span>'; break;
+            default: typeDisplay = '<span class="badge bg-secondary type-badge">其他</span>';
+        }
+        
+        // 格式化状态显示
+        const statusDisplay = section.status === 'active' ? 
+            '<span class="badge badge-active">显示</span>' : 
+            '<span class="badge badge-hidden">隐藏</span>';
+        
+        row.innerHTML = `
+            <td>
+                <strong>${section.title}</strong>
+                <small class="d-block text-muted">${section.section_id}</small>
+            </td>
+            <td>${typeDisplay}</td>
+            <td>${section.position}</td>
+            <td>${statusDisplay}</td>
+            <td>${section.updated_at}</td>
+            <td>
+                <div class="action-buttons">
+                    <button class="btn btn-sm btn-outline-primary edit-content-btn" data-id="${section.section_id}" title="编辑">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger delete-content-btn" data-id="${section.section_id}" data-title="${section.title}" title="删除">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+        
+        tableBody.appendChild(row);
+    });
+    
+    // 添加编辑和删除按钮事件
+    document.querySelectorAll('.edit-content-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const sectionId = this.getAttribute('data-id');
+            editContent(sectionId);
+        });
+    });
+    
+    document.querySelectorAll('.delete-content-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const sectionId = this.getAttribute('data-id');
+            const title = this.getAttribute('data-title');
+            showDeleteConfirm('content', sectionId, `确定要删除内容板块 "${title}" 吗？此操作将同时删除关联的问答和测试题目，且无法撤销。`);
+        });
+    });
+    
+    // 更新分页信息
+    updatePagination(sections.length);
+}
+
+/**
+ * 更新分页
+ */
+function updatePagination(totalItems) {
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const paginationInfo = document.getElementById('content-pagination-info');
+    const pagination = document.getElementById('content-pagination');
+    
+    // 更新分页信息
+    paginationInfo.textContent = `显示 ${totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} 至 ${Math.min(currentPage * itemsPerPage, totalItems)} 共 ${totalItems} 条记录`;
+    
+    // 更新分页按钮
+    pagination.innerHTML = '';
+    
+    // 上一页按钮
+    const prevLi = document.createElement('li');
+    prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+    prevLi.innerHTML = `<a class="page-link" href="#" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a>`;
+    if (currentPage > 1) {
+        prevLi.querySelector('a').addEventListener('click', function(e) {
+            e.preventDefault();
+            currentPage--;
+            renderContentTable(currentSections);
+        });
+    }
+    pagination.appendChild(prevLi);
+    
+    // 页码按钮
+    for (let i = 1; i <= totalPages; i++) {
+        const pageLi = document.createElement('li');
+        pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
+        pageLi.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+        pageLi.querySelector('a').addEventListener('click', function(e) {
+            e.preventDefault();
+            currentPage = i;
+            renderContentTable(currentSections);
+        });
+        pagination.appendChild(pageLi);
+    }
+    
+    // 下一页按钮
+    const nextLi = document.createElement('li');
+    nextLi.className = `page-item ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}`;
+    nextLi.innerHTML = `<a class="page-link" href="#" aria-label="Next"><span aria-hidden="true">&raquo;</span></a>`;
+    if (currentPage < totalPages) {
+        nextLi.querySelector('a').addEventListener('click', function(e) {
+            e.preventDefault();
+            currentPage++;
+            renderContentTable(currentSections);
+        });
+    }
+    pagination.appendChild(nextLi);
+}
+
+/**
+ * 重置内容表单
+ */
+function resetContentForm() {
+    document.getElementById('sectionIdInput').value = '';
+    document.getElementById('titleInput').value = '';
+    document.getElementById('positionInput').value = 0;
+    document.getElementById('imagePathInput').value = '';
+    document.getElementById('contentTypeSelect').value = 'text';
+    document.getElementById('statusActive').checked = true;
+    contentEditor.setData('');
+    
+    // 启用板块ID输入框
+    document.getElementById('sectionIdInput').disabled = false;
+}
+
+/**
+ * 保存内容板块
+ */
+function saveContent() {
+    const sectionId = document.getElementById('sectionIdInput').value.trim();
+    const title = document.getElementById('titleInput').value.trim();
+    const position = parseInt(document.getElementById('positionInput').value);
+    const imagePath = document.getElementById('imagePathInput').value.trim();
+    const contentType = document.getElementById('contentTypeSelect').value;
+    const status = document.querySelector('input[name="statusRadio"]:checked').value;
+    const content = contentEditor.getData();
+    
+    // 验证表单
+    if (!sectionId || !title || !content) {
+        showToast('error', '请填写必填字段');
+        return;
+    }
+    
+    // 验证sectionId格式
+    if (!/^[a-zA-Z0-9_]+$/.test(sectionId)) {
+        showToast('error', '板块ID只能包含英文字母、数字和下划线');
+        return;
+    }
+    
+    // 构建请求数据
+    const data = {
+        section_id: sectionId,
+        title: title,
+        content: content,
+        content_type: contentType,
+        image_path: imagePath,
+        position: position,
+        status: status
+    };
+    
+    // 显示加载中
+    document.getElementById('saveContentBtn').disabled = true;
+    document.getElementById('saveContentBtn').innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 保存中...';
+    
+    // 发送请求
+    fetch('/api/scientific/content', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        // 恢复按钮状态
+        document.getElementById('saveContentBtn').disabled = false;
+        document.getElementById('saveContentBtn').innerHTML = '保存';
+        
+        if (data.success) {
+            // 关闭模态框
+            document.getElementById('addContentModal').querySelector('.btn-close').click();
+            
+            // 显示成功消息
+            showToast('success', '添加内容板块成功');
+            
+            // 重新加载内容列表
+            loadContentSections();
+        } else {
+            showToast('error', '添加内容板块失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        // 恢复按钮状态
+        document.getElementById('saveContentBtn').disabled = false;
+        document.getElementById('saveContentBtn').innerHTML = '保存';
+        
+        console.error('添加内容板块失败:', error);
+        showToast('error', '添加内容板块失败：' + error.message);
+    });
+}
+
+/**
+ * 编辑内容板块
+ */
+function editContent(sectionId) {
+    // 显示加载中
+    showToast('info', '正在加载内容...');
+    
+    // 从API获取内容详情
+    fetch(`/api/scientific/content/${sectionId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const section = data.data;
+                
+                // 填充表单
+                document.getElementById('editSectionId').value = section.section_id;
+                document.getElementById('editTitleInput').value = section.title;
+                document.getElementById('editPositionInput').value = section.position;
+                document.getElementById('editImagePathInput').value = section.image_path || '';
+                document.getElementById('editContentTypeSelect').value = section.content_type;
+                
+                // 设置状态单选按钮
+                if (section.status === 'active') {
+                    document.getElementById('editStatusActive').checked = true;
+                } else {
+                    document.getElementById('editStatusHidden').checked = true;
+                }
+                
+                // 设置内容
+                editContentEditor.setData(section.content);
+                
+                // 显示模态框
+                const modal = new bootstrap.Modal(document.getElementById('editContentModal'));
+                modal.show();
+            } else {
+                showToast('error', '加载内容失败：' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('加载内容失败:', error);
+            showToast('error', '加载内容失败：' + error.message);
+        });
+}
+
+/**
+ * 更新内容板块
+ */
+function updateContent() {
+    const sectionId = document.getElementById('editSectionId').value;
+    const title = document.getElementById('editTitleInput').value.trim();
+    const position = parseInt(document.getElementById('editPositionInput').value);
+    const imagePath = document.getElementById('editImagePathInput').value.trim();
+    const contentType = document.getElementById('editContentTypeSelect').value;
+    const status = document.querySelector('input[name="editStatusRadio"]:checked').value;
+    const content = editContentEditor.getData();
+    
+    // 验证表单
+    if (!title || !content) {
+        showToast('error', '请填写必填字段');
+        return;
+    }
+    
+    // 构建请求数据
+    const data = {
+        title: title,
+        content: content,
+        content_type: contentType,
+        image_path: imagePath,
+        position: position,
+        status: status
+    };
+    
+    // 显示加载中
+    document.getElementById('updateContentBtn').disabled = true;
+    document.getElementById('updateContentBtn').innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 更新中...';
+    
+    // 发送请求
+    fetch(`/api/scientific/content/${sectionId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        // 恢复按钮状态
+        document.getElementById('updateContentBtn').disabled = false;
+        document.getElementById('updateContentBtn').innerHTML = '更新';
+        
+        if (data.success) {
+            // 关闭模态框
+            document.getElementById('editContentModal').querySelector('.btn-close').click();
+            
+            // 显示成功消息
+            showToast('success', '更新内容板块成功');
+            
+            // 重新加载内容列表
+            loadContentSections();
+        } else {
+            showToast('error', '更新内容板块失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        // 恢复按钮状态
+        document.getElementById('updateContentBtn').disabled = false;
+        document.getElementById('updateContentBtn').innerHTML = '更新';
+        
+        console.error('更新内容板块失败:', error);
+        showToast('error', '更新内容板块失败：' + error.message);
+    });
+}
+
+/**
+ * 显示删除确认对话框
+ */
+function showDeleteConfirm(itemType, itemId, message) {
+    document.getElementById('deleteItemType').value = itemType;
+    document.getElementById('deleteItemId').value = itemId;
+    document.getElementById('deleteConfirmMessage').textContent = message;
+    
+    const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+    modal.show();
+}
+
+/**
+ * 确认删除操作
+ */
+function confirmDelete() {
+    const itemType = document.getElementById('deleteItemType').value;
+    const itemId = document.getElementById('deleteItemId').value;
+    
+    let url = '';
+    let successMsg = '';
+    let reloadFunc = null;
+    
+    // 根据不同的项目类型设置不同的参数
+    switch(itemType) {
+        case 'content':
+            url = `/api/scientific/content/${itemId}`;
+            successMsg = '删除内容板块成功';
+            reloadFunc = loadContentSections;
+            break;
+        case 'faq':
+            url = `/api/scientific/faq/${itemId}`;
+            successMsg = '删除问答成功';
+            reloadFunc = () => loadFaqs(document.getElementById('faqSectionSelect').value);
+            break;
+        case 'quiz':
+            url = `/api/scientific/question/${itemId}`;
+            successMsg = '删除测试题目成功';
+            reloadFunc = () => loadQuizzes(document.getElementById('quizSectionSelect').value);
+            break;
+    }
+    
+    // 显示加载中
+    document.getElementById('confirmDeleteBtn').disabled = true;
+    document.getElementById('confirmDeleteBtn').innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 删除中...';
+    
+    // 发送请求
+    fetch(url, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        // 恢复按钮状态
+        document.getElementById('confirmDeleteBtn').disabled = false;
+        document.getElementById('confirmDeleteBtn').innerHTML = '删除';
+        
+        // 关闭模态框
+        document.getElementById('deleteConfirmModal').querySelector('.btn-close').click();
+        
+        if (data.success) {
+            // 显示成功消息
+            showToast('success', successMsg);
+            
+            // 重新加载数据
+            if (reloadFunc) reloadFunc();
+        } else {
+            showToast('error', '删除失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        // 恢复按钮状态
+        document.getElementById('confirmDeleteBtn').disabled = false;
+        document.getElementById('confirmDeleteBtn').innerHTML = '删除';
+        
+        // 关闭模态框
+        document.getElementById('deleteConfirmModal').querySelector('.btn-close').click();
+        
+        console.error('删除失败:', error);
+        showToast('error', '删除失败：' + error.message);
+    });
+}
+
+/**
+ * 过滤内容表格
+ */
+function filterContentTable(keyword) {
+    keyword = keyword.toLowerCase();
+    
+    if (!keyword) {
+        renderContentTable(currentSections);
+        return;
+    }
+    
+    const filteredSections = currentSections.filter(section => 
+        section.title.toLowerCase().includes(keyword) || 
+        section.section_id.toLowerCase().includes(keyword) ||
+        section.content.toLowerCase().includes(keyword)
+    );
+    
+    renderContentTable(filteredSections);
+}
+
+/**
+ * 加载问答列表
+ */
+function loadFaqs(sectionId) {
+    const faqsList = document.getElementById('faqsList');
+    faqsList.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">加载问答列表...</p>
+        </div>
+    `;
+    
+    fetch(`/api/scientific/faqs/${sectionId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // 缓存该section的FAQ数据
+                cachedFaqs[sectionId] = data.data;
+                renderFaqs(data.data, sectionId);
+            } else {
+                faqsList.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i> 加载问答失败：${data.message}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('加载问答失败:', error);
+            faqsList.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i> 加载问答失败：${error.message}
+                </div>
+            `;
+        });
+}
+
+/**
+ * 渲染问答列表
+ */
+function renderFaqs(faqs, sectionId) {
+    const faqsList = document.getElementById('faqsList');
+    
+    if (faqs.length === 0) {
+        faqsList.innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i> 此内容板块暂无问答，请点击"添加问答"按钮添加
+            </div>
+        `;
+        return;
+    }
+    
+    faqsList.innerHTML = '';
+    
+    faqs.forEach(faq => {
+        const faqDiv = document.createElement('div');
+        faqDiv.className = 'faq-item';
+        
+        const statusBadge = faq.status === 'active' ? 
+            '<span class="badge badge-active">显示</span>' : 
+            '<span class="badge badge-hidden">隐藏</span>';
+        
+        faqDiv.innerHTML = `
+            <div class="faq-item-buttons">
+                <button class="btn btn-sm btn-outline-primary edit-faq-btn" data-id="${faq.id}" title="编辑">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger delete-faq-btn" data-id="${faq.id}" title="删除">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+            <h5 class="mb-2">
+                ${faq.question}
+                ${statusBadge}
+                <small class="d-block text-muted mt-1">顺序: ${faq.position}</small>
+            </h5>
+            <div class="faq-answer p-2 bg-light rounded">
+                ${faq.answer}
+            </div>
+        `;
+        
+        faqsList.appendChild(faqDiv);
+    });
+    
+    // 添加编辑和删除按钮事件
+    document.querySelectorAll('.edit-faq-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const faqId = this.getAttribute('data-id');
+            editFaq(faqId);
+        });
+    });
+    
+    document.querySelectorAll('.delete-faq-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const faqId = this.getAttribute('data-id');
+            const question = this.closest('.faq-item').querySelector('h5').textContent.trim();
+            showDeleteConfirm('faq', faqId, `确定要删除问题 "${question}" 吗？此操作无法撤销。`);
+        });
+    });
+}
+
+/**
+ * 重置问答表单
+ */
+function resetFaqForm() {
+    document.getElementById('questionInput').value = '';
+    document.getElementById('answerInput').value = '';
+    document.getElementById('faqPositionInput').value = 0;
+    document.getElementById('faqStatusSelect').value = 'active';
+}
+
+/**
+ * 保存问答
+ */
+function saveFaq() {
+    const sectionId = document.getElementById('faqSectionIdInput').value;
+    const question = document.getElementById('questionInput').value.trim();
+    const answer = document.getElementById('answerInput').value.trim();
+    const position = parseInt(document.getElementById('faqPositionInput').value);
+    const status = document.getElementById('faqStatusSelect').value;
+    
+    // 验证表单
+    if (!question || !answer) {
+        showToast('error', '请填写问题和回答');
+        return;
+    }
+    
+    // 构建请求数据
+    const data = {
+        section_id: sectionId,
+        question: question,
+        answer: answer,
+        position: position,
+        status: status
+    };
+    
+    // 显示加载中
+    document.getElementById('saveFaqBtn').disabled = true;
+    document.getElementById('saveFaqBtn').innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 保存中...';
+    
+    // 发送请求
+    fetch('/api/scientific/faq', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        // 恢复按钮状态
+        document.getElementById('saveFaqBtn').disabled = false;
+        document.getElementById('saveFaqBtn').innerHTML = '保存';
+        
+        if (data.success) {
+            // 关闭模态框
+            document.getElementById('addFaqModal').querySelector('.btn-close').click();
+            
+            // 显示成功消息
+            showToast('success', '添加问答成功');
+            
+            // 更新缓存：先清除缓存以便重新加载最新数据
+            if (cachedFaqs[sectionId]) {
+                delete cachedFaqs[sectionId];
+            }
+            
+            // 重新加载问答列表
+            loadFaqs(sectionId);
+        } else {
+            showToast('error', '添加问答失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        // 恢复按钮状态
+        document.getElementById('saveFaqBtn').disabled = false;
+        document.getElementById('saveFaqBtn').innerHTML = '保存';
+        
+        console.error('添加问答失败:', error);
+        showToast('error', '添加问答失败：' + error.message);
+    });
+}
+
+/**
+ * 编辑问答
+ */
+function editFaq(faqId) {
+    // 显示加载中
+    showToast('info', '正在加载问答...');
+    
+    // 获取当前选择的内容板块ID
+    const sectionId = document.getElementById('faqSectionSelect').value;
+    
+    // 从缓存的FAQs中查找当前的FAQ数据
+    if (cachedFaqs[sectionId]) {
+        const faq = cachedFaqs[sectionId].find(item => item.id == faqId);
+        if (faq) {
+            // 如果找到了FAQ数据，直接填充表单
+            fillFaqForm(faq);
+            return;
+        }
+    }
+    
+    // 如果缓存中没有找到，尝试重新加载
+    fetch(`/api/scientific/faqs/${sectionId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // 更新缓存
+                cachedFaqs[sectionId] = data.data;
+                const faq = data.data.find(item => item.id == faqId);
+                
+                if (faq) {
+                    // 如果找到了FAQ数据，直接填充表单
+                    fillFaqForm(faq);
+                } else {
+                    // 如果没有找到，显示错误信息
+                    showToast('error', '找不到指定ID的问答数据');
+                }
+            } else {
+                showToast('error', '加载问答数据失败：' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('加载问答失败:', error);
+            showToast('error', '加载问答失败：' + error.message);
+        });
+}
+
+/**
+ * 填充FAQ编辑表单
+ */
+function fillFaqForm(faq) {
+    // 填充表单
+    document.getElementById('editFaqId').value = faq.id;
+    document.getElementById('editQuestionInput').value = faq.question;
+    document.getElementById('editAnswerInput').value = faq.answer;
+    document.getElementById('editFaqPositionInput').value = faq.position;
+    document.getElementById('editFaqStatusSelect').value = faq.status;
+    
+    // 显示模态框
+    const modal = new bootstrap.Modal(document.getElementById('editFaqModal'));
+    modal.show();
+}
+
+/**
+ * 更新问答
+ */
+function updateFaq() {
+    const faqId = document.getElementById('editFaqId').value;
+    const question = document.getElementById('editQuestionInput').value.trim();
+    const answer = document.getElementById('editAnswerInput').value.trim();
+    const position = parseInt(document.getElementById('editFaqPositionInput').value);
+    const status = document.getElementById('editFaqStatusSelect').value;
+    
+    // 验证表单
+    if (!question || !answer) {
+        showToast('error', '请填写问题和回答');
+        return;
+    }
+    
+    // 构建请求数据
+    const data = {
+        question: question,
+        answer: answer,
+        position: position,
+        status: status
+    };
+    
+    // 显示加载中
+    document.getElementById('updateFaqBtn').disabled = true;
+    document.getElementById('updateFaqBtn').innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 更新中...';
+    
+    // 发送请求
+    fetch(`/api/scientific/faq/${faqId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        // 恢复按钮状态
+        document.getElementById('updateFaqBtn').disabled = false;
+        document.getElementById('updateFaqBtn').innerHTML = '更新';
+        
+        if (data.success) {
+            // 关闭模态框
+            document.getElementById('editFaqModal').querySelector('.btn-close').click();
+            
+            // 显示成功消息
+            showToast('success', '更新问答成功');
+            
+            // 获取当前选择的内容板块ID
+            const sectionId = document.getElementById('faqSectionSelect').value;
+            
+            // 更新缓存：先清除缓存以便重新加载最新数据
+            if (cachedFaqs[sectionId]) {
+                delete cachedFaqs[sectionId];
+            }
+            
+            // 重新加载问答列表
+            loadFaqs(sectionId);
+        } else {
+            showToast('error', '更新问答失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        // 恢复按钮状态
+        document.getElementById('updateFaqBtn').disabled = false;
+        document.getElementById('updateFaqBtn').innerHTML = '更新';
+        
+        console.error('更新问答失败:', error);
+        showToast('error', '更新问答失败：' + error.message);
+    });
+}
+
+/**
+ * 加载测试题目列表
+ */
+function loadQuizzes(sectionId) {
+    const quizzesList = document.getElementById('quizzesList');
+    quizzesList.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">加载测试题目列表...</p>
+        </div>
+    `;
+    
+    // 获取当前选择的选项元素
+    const selectElement = document.getElementById('quizSectionSelect');
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    
+    // 从数据属性中获取section_id
+    const contentSectionId = selectedOption.dataset.sectionId;
+    
+    if (contentSectionId) {
+        // 首先尝试通过内容 API 获取，因为它包含测试题目的数据
+        fetch(`/api/scientific/content/${contentSectionId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data.questions && data.data.questions.length > 0) {
+                    // 如果内容 API 返回的数据包含题目，则直接使用这些题目数据
+                    console.log('成功加载内容API中的题目数据:', data.data.questions);
+                    renderQuizzes(data.data.questions, sectionId);
+                } else {
+                    // 如果内容 API 没有返回题目数据，则回退到专用的题目 API
+                    console.log('内容API没有返回题目数据，尝试专用题目API');
+                    fetchQuestionsDirectly(sectionId);
+                }
+            })
+            .catch(error => {
+                console.error('通过内容API加载测试题目失败, 尝试直接加载题目:', error);
+                fetchQuestionsDirectly(sectionId);
+            });
+    } else {
+        // 如果无法获取section_id，则直接使用题目 API
+        console.log('无法获取section_id，直接使用题目API');
+        fetchQuestionsDirectly(sectionId);
+    }
+}
+
+/**
+ * 直接通过题目 API 获取题目数据
+ */
+function fetchQuestionsDirectly(sectionId) {
+    fetch(`/api/scientific/questions/${sectionId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                renderQuizzes(data.data, sectionId);
+            } else {
+                document.getElementById('quizzesList').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i> 加载测试题目失败：${data.message}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('加载测试题目失败:', error);
+            document.getElementById('quizzesList').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i> 加载测试题目失败：${error.message}
+                </div>
+            `;
+        });
+}
+
+/**
+ * 渲染测试题目列表
+ */
+function renderQuizzes(quizzes, sectionId) {
+    const quizzesList = document.getElementById('quizzesList');
+    
+    if (quizzes.length === 0) {
+        quizzesList.innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i> 此内容板块暂无测试题目，请点击"添加题目"按钮添加
+            </div>
+        `;
+        return;
+    }
+    
+    quizzesList.innerHTML = '';
+    
+    quizzes.forEach(quiz => {
+        const quizDiv = document.createElement('div');
+        quizDiv.className = 'quiz-item';
+        
+        const statusBadge = quiz.status === 'active' ? 
+            '<span class="badge badge-active">显示</span>' : 
+            '<span class="badge badge-hidden">隐藏</span>';
+        
+        // 生成选项HTML
+        let optionsHtml = '';
+        const options = quiz.options;
+        options.forEach((option) => {
+            // 选项已经包含字母前缀，如 "A. xxx"
+            // 从选项中提取字母部分
+            const letter = option.substring(0, 1);
+            const isCorrect = quiz.answer === letter;
+            const optionClass = isCorrect ? 'text-success fw-bold' : '';
+            const correctMark = isCorrect ? '<i class="fas fa-check text-success ms-2"></i>' : '';
+            
+            optionsHtml += `
+                <div class="mb-1 ${optionClass}">
+                    ${option} ${correctMark}
+                </div>
+            `;
+        });
+        
+        // 添加解析（如果有）
+        let explanationHtml = '';
+        if (quiz.explanation) {
+            explanationHtml = `
+                <div class="mt-2 pt-2 border-top">
+                    <strong>解析：</strong> ${quiz.explanation}
+                </div>
+            `;
+        }
+        
+        quizDiv.innerHTML = `
+            <div class="quiz-item-buttons">
+                <button class="btn btn-sm btn-outline-primary edit-quiz-btn" data-id="${quiz.id}" title="编辑">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger delete-quiz-btn" data-id="${quiz.id}" title="删除">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+            <h5 class="mb-2">
+                ${quiz.question}
+                ${statusBadge}
+                <small class="d-block text-muted mt-1">顺序: ${quiz.position}</small>
+            </h5>
+            <div class="quiz-options p-2 bg-light rounded">
+                ${optionsHtml}
+                ${explanationHtml}
+            </div>
+        `;
+        
+        quizzesList.appendChild(quizDiv);
+    });
+    
+    // 添加编辑和删除按钮事件
+    document.querySelectorAll('.edit-quiz-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const quizId = this.getAttribute('data-id');
+            editQuiz(quizId);
+        });
+    });
+    
+    document.querySelectorAll('.delete-quiz-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const quizId = this.getAttribute('data-id');
+            const question = this.closest('.quiz-item').querySelector('h5').textContent.trim();
+            showDeleteConfirm('quiz', quizId, `确定要删除题目 "${question}" 吗？此操作无法撤销。`);
+        });
+    });
+}
+
+/**
+ * 重置测试题目表单
+ */
+function resetQuizForm() {
+    document.getElementById('quizQuestionInput').value = '';
+    document.getElementById('quizAnswerSelect').value = '';
+    document.getElementById('quizPositionInput').value = 0;
+    document.getElementById('quizExplanationInput').value = '';
+    document.getElementById('quizStatusSelect').value = 'active';
+    
+    // 清空选项输入框
+    document.querySelectorAll('.quiz-option').forEach(input => {
+        input.value = '';
+    });
+}
+
+/**
+ * 保存测试题目
+ */
+function saveQuiz() {
+    const sectionId = document.getElementById('quizSectionIdInput').value;
+    const question = document.getElementById('quizQuestionInput').value.trim();
+    const answer = document.getElementById('quizAnswerSelect').value;
+    const position = parseInt(document.getElementById('quizPositionInput').value);
+    const explanation = document.getElementById('quizExplanationInput').value.trim();
+    const status = document.getElementById('quizStatusSelect').value;
+    
+    // 验证表单
+    if (!question || !answer) {
+        showToast('error', '请填写题目和选择正确答案');
+        return;
+    }
+    
+    // 获取选项
+    const options = [];
+    let hasEmptyOption = false;
+    document.querySelectorAll('.quiz-option').forEach((input, index) => {
+        const value = input.value.trim();
+        if (!value) {
+            hasEmptyOption = true;
+        }
+        // 添加字母选项前缀 (A, B, C, D...)
+        const letter = String.fromCharCode(65 + index);
+        options.push(`${letter}. ${value}`);
+    });
+    
+    if (hasEmptyOption) {
+        showToast('error', '请填写所有选项内容');
+        return;
+    }
+    
+    // 构建请求数据
+    const data = {
+        section_id: sectionId,
+        question: question,
+        options: options,  // 选项已经包含了字母前缀
+        answer: answer,
+        explanation: explanation,
+        position: position,
+        status: status
+    };
+    
+    // 显示加载中
+    document.getElementById('saveQuizBtn').disabled = true;
+    document.getElementById('saveQuizBtn').innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 保存中...';
+    
+    // 发送请求
+    fetch('/api/scientific/question', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        // 恢复按钮状态
+        document.getElementById('saveQuizBtn').disabled = false;
+        document.getElementById('saveQuizBtn').innerHTML = '保存';
+        
+        if (data.success) {
+            // 关闭模态框
+            document.getElementById('addQuizModal').querySelector('.btn-close').click();
+            
+            // 显示成功消息
+            showToast('success', '添加测试题目成功');
+            
+            // 重新加载测试题目列表
+            loadQuizzes(sectionId);
+        } else {
+            showToast('error', '添加测试题目失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        // 恢复按钮状态
+        document.getElementById('saveQuizBtn').disabled = false;
+        document.getElementById('saveQuizBtn').innerHTML = '保存';
+        
+        console.error('添加测试题目失败:', error);
+        showToast('error', '添加测试题目失败：' + error.message);
+    });
+}
+
+/**
+ * 编辑测试题目
+ */
+function editQuiz(quizId) {
+    // 显示加载中
+    showToast('info', '正在加载测试题目...');
+    
+    fetch(`/api/scientific/question/${quizId}`, {
+        method: 'GET'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const quiz = data.data;
+            
+            // 填充表单
+            document.getElementById('editQuizId').value = quiz.id;
+            document.getElementById('editQuizQuestionInput').value = quiz.question;
+            document.getElementById('editQuizAnswerSelect').value = quiz.answer;
+            document.getElementById('editQuizPositionInput').value = quiz.position;
+            document.getElementById('editQuizExplanationInput').value = quiz.explanation || '';
+            document.getElementById('editQuizStatusSelect').value = quiz.status;
+            
+            // 填充选项 - 从选项中去除字母前缀 (如 "A. xxx" 变成 "xxx")
+            const options = quiz.options;
+            document.querySelectorAll('.edit-quiz-option').forEach((input, index) => {
+                if (index < options.length) {
+                    // 提取选项中的实际内容，移除 "X. " 前缀
+                    const optionContent = options[index].substring(3);
+                    input.value = optionContent;
+                } else {
+                    input.value = '';
+                }
+            });
+            
+            // 显示模态框
+            const modal = new bootstrap.Modal(document.getElementById('editQuizModal'));
+            modal.show();
+        } else {
+            showToast('error', '加载测试题目失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('加载测试题目失败:', error);
+        showToast('error', '加载测试题目失败：' + error.message);
+    });
+}
+
+/**
+ * 更新测试题目
+ */
+function updateQuiz() {
+    const quizId = document.getElementById('editQuizId').value;
+    const question = document.getElementById('editQuizQuestionInput').value.trim();
+    const answer = document.getElementById('editQuizAnswerSelect').value;
+    const position = parseInt(document.getElementById('editQuizPositionInput').value);
+    const explanation = document.getElementById('editQuizExplanationInput').value.trim();
+    const status = document.getElementById('editQuizStatusSelect').value;
+    
+    // 验证表单
+    if (!question || !answer) {
+        showToast('error', '请填写题目和选择正确答案');
+        return;
+    }
+    
+    // 获取选项
+    const options = [];
+    let hasEmptyOption = false;
+    document.querySelectorAll('.edit-quiz-option').forEach((input, index) => {
+        const value = input.value.trim();
+        if (!value) {
+            hasEmptyOption = true;
+        }
+        // 添加字母选项前缀 (A, B, C, D...)
+        const letter = String.fromCharCode(65 + index);
+        options.push(`${letter}. ${value}`);
+    });
+    
+    if (hasEmptyOption) {
+        showToast('error', '请填写所有选项内容');
+        return;
+    }
+    
+    // 构建请求数据
+    const data = {
+        question: question,
+        options: options,  // 选项已经包含了字母前缀
+        answer: answer,
+        explanation: explanation,
+        position: position,
+        status: status
+    };
+    
+    // 显示加载中
+    document.getElementById('updateQuizBtn').disabled = true;
+    document.getElementById('updateQuizBtn').innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 更新中...';
+    
+    // 发送请求
+    fetch(`/api/scientific/question/${quizId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        // 恢复按钮状态
+        document.getElementById('updateQuizBtn').disabled = false;
+        document.getElementById('updateQuizBtn').innerHTML = '更新';
+        
+        if (data.success) {
+            // 关闭模态框
+            document.getElementById('editQuizModal').querySelector('.btn-close').click();
+            
+            // 显示成功消息
+            showToast('success', '更新测试题目成功');
+            
+            // 重新加载测试题目列表
+            loadQuizzes(document.getElementById('quizSectionSelect').value);
+        } else {
+            showToast('error', '更新测试题目失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        // 恢复按钮状态
+        document.getElementById('updateQuizBtn').disabled = false;
+        document.getElementById('updateQuizBtn').innerHTML = '更新';
+        
+        console.error('更新测试题目失败:', error);
+        showToast('error', '更新测试题目失败：' + error.message);
+    });
+}
+
+/**
+ * 加载预览内容
+ */
+function loadPreview(sectionId) {
+    const previewContent = document.getElementById('previewContent');
+    previewContent.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">加载预览内容...</p>
+        </div>
+    `;
+    
+    if (sectionId === 'all') {
+        // 加载所有内容预览
+        fetch('/api/scientific/contents')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    renderPreview(data.data, 'all');
+                } else {
+                    previewContent.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle me-2"></i> 加载预览内容失败：${data.message}
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('加载预览内容失败:', error);
+                previewContent.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i> 加载预览内容失败：${error.message}
+                    </div>
+                `;
+            });
+    } else {
+        // 加载特定板块预览
+        fetch(`/api/scientific/content/${sectionId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    renderPreview([data.data], sectionId);
+                } else {
+                    previewContent.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle me-2"></i> 加载预览内容失败：${data.message}
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('加载预览内容失败:', error);
+                previewContent.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i> 加载预览内容失败：${error.message}
+                    </div>
+                `;
+            });
+    }
+}
+
+/**
+ * 渲染预览内容
+ */
+function renderPreview(sections, sectionId) {
+    const previewContent = document.getElementById('previewContent');
+    previewContent.innerHTML = '';
+    
+    if (sections.length === 0) {
+        previewContent.innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i> 暂无内容可预览
+            </div>
+        `;
+        return;
+    }
+    
+    // 筛选出状态为active的内容（如果是预览所有内容）
+    if (sectionId === 'all') {
+        sections = sections.filter(section => section.status === 'active');
+    }
+    
+    // 按position排序
+    sections.sort((a, b) => a.position - b.position);
+    
+    // 渲染内容
+    sections.forEach(section => {
+        const sectionDiv = document.createElement('div');
+        sectionDiv.className = 'mb-4 pb-4 border-bottom';
+        
+        // 添加图片（如果有）
+        let imageHtml = '';
+        if (section.image_path) {
+            imageHtml = `
+                <div class="text-center mb-3">
+                    <img src="${section.image_path}" alt="${section.title}" class="img-fluid" style="max-height: 300px;">
+                </div>
+            `;
+        }
+        
+        // 添加FAQs（如果是FAQ类型）
+        let faqsHtml = '';
+        if (section.content_type === 'faq') {
+            faqsHtml = `
+                <div class="mt-3" id="faqs-preview-${section.id}">
+                    <div class="text-center py-2">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <span class="ms-2">加载问答...</span>
+                    </div>
+                </div>
+            `;
+            
+            // 异步加载FAQs
+            setTimeout(() => {
+                loadFaqsForPreview(section.id);
+            }, 100);
+        }
+        
+        // 添加测试题目（如果是quiz类型）
+        let quizzesHtml = '';
+        if (section.content_type === 'quiz') {
+            quizzesHtml = `
+                <div class="mt-3" id="quizzes-preview-${section.id}">
+                    <div class="text-center py-2">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <span class="ms-2">加载测试题目...</span>
+                    </div>
+                </div>
+            `;
+            
+            // 异步加载测试题目
+            setTimeout(() => {
+                loadQuizzesForPreview(section.id);
+            }, 100);
+        }
+        
+        // 标记内容类型
+        let typeHtml = '';
+        switch(section.content_type) {
+            case 'text': typeHtml = '<span class="badge bg-primary me-2">文本</span>'; break;
+            case 'faq': typeHtml = '<span class="badge bg-info me-2">FAQ</span>'; break;
+            case 'tips': typeHtml = '<span class="badge bg-success me-2">小贴士</span>'; break;
+            case 'quiz': typeHtml = '<span class="badge bg-warning me-2">测试</span>'; break;
+        }
+        
+        sectionDiv.innerHTML = `
+            <h3 class="mb-3">${typeHtml}${section.title}</h3>
+            ${imageHtml}
+            <div class="content-body">
+                ${section.content}
+            </div>
+            ${faqsHtml}
+            ${quizzesHtml}
+        `;
+        
+        previewContent.appendChild(sectionDiv);
+    });
+}
+
+/**
+ * 为预览加载FAQ内容
+ */
+function loadFaqsForPreview(sectionId) {
+    const faqsContainer = document.getElementById(`faqs-preview-${sectionId}`);
+    
+    fetch(`/api/scientific/faqs/${sectionId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const faqs = data.data.filter(faq => faq.status === 'active');
+                
+                if (faqs.length === 0) {
+                    faqsContainer.innerHTML = `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i> 此内容板块暂无问答
+                        </div>
+                    `;
+                    return;
+                }
+                
+                faqsContainer.innerHTML = `
+                    <div class="accordion" id="faqAccordion-${sectionId}">
+                    </div>
+                `;
+                
+                const accordion = document.getElementById(`faqAccordion-${sectionId}`);
+                
+                faqs.forEach((faq, index) => {
+                    const faqItem = document.createElement('div');
+                    faqItem.className = 'accordion-item';
+                    faqItem.innerHTML = `
+                        <h2 class="accordion-header" id="faqHeading-${faq.id}">
+                            <button class="accordion-button ${index !== 0 ? 'collapsed' : ''}" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse-${faq.id}" aria-expanded="${index === 0 ? 'true' : 'false'}" aria-controls="faqCollapse-${faq.id}">
+                                ${faq.question}
+                            </button>
+                        </h2>
+                        <div id="faqCollapse-${faq.id}" class="accordion-collapse collapse ${index === 0 ? 'show' : ''}" aria-labelledby="faqHeading-${faq.id}" data-bs-parent="#faqAccordion-${sectionId}">
+                            <div class="accordion-body">
+                                ${faq.answer}
+                            </div>
+                        </div>
+                    `;
+                    
+                    accordion.appendChild(faqItem);
+                });
+            } else {
+                faqsContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i> 加载问答失败：${data.message}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('加载问答失败:', error);
+            faqsContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i> 加载问答失败：${error.message}
+                </div>
+            `;
+        });
+}
+
+/**
+ * 为预览加载测试题目
+ */
+function loadQuizzesForPreview(sectionId) {
+    const quizzesContainer = document.getElementById(`quizzes-preview-${sectionId}`);
+    
+    fetch(`/api/scientific/questions/${sectionId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const quizzes = data.data.filter(quiz => quiz.status === 'active');
+                
+                if (quizzes.length === 0) {
+                    quizzesContainer.innerHTML = `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i> 此内容板块暂无测试题目
+                        </div>
+                    `;
+                    return;
+                }
+                
+                quizzesContainer.innerHTML = `
+                    <div class="list-group">
+                    </div>
+                `;
+                
+                const listGroup = quizzesContainer.querySelector('.list-group');
+                
+                quizzes.forEach((quiz, index) => {
+                    const quizItem = document.createElement('div');
+                    quizItem.className = 'list-group-item';
+                    
+                    // 生成选项HTML
+                    let optionsHtml = '';
+                    quiz.options.forEach((option) => {
+                        // 从选项中提取字母部分，如 "A. xxx" 中的 "A"
+                        const letter = option.substring(0, 1);
+                        
+                        optionsHtml += `
+                            <div class="form-check">
+                                <input class="form-check-input preview-quiz-option" type="radio" name="quiz-${quiz.id}" value="${letter}" id="quiz-${quiz.id}-option-${letter}">
+                                <label class="form-check-label" for="quiz-${quiz.id}-option-${letter}">
+                                    ${option}
+                                </label>
+                            </div>
+                        `;
+                    });
+                    
+                    quizItem.innerHTML = `
+                        <h5 class="mb-3">${index + 1}. ${quiz.question}</h5>
+                        <div class="quiz-options mb-3">
+                            ${optionsHtml}
+                        </div>
+                        <div class="quiz-result quiz-result-${quiz.id}" style="display: none;"></div>
+                        <button class="btn btn-sm btn-primary check-answer-btn" data-id="${quiz.id}" data-answer="${quiz.answer}" data-explanation="${quiz.explanation || ''}">检查答案</button>
+                    `;
+                    
+                    listGroup.appendChild(quizItem);
+                });
+                
+                // 添加检查答案的事件
+                document.querySelectorAll('.check-answer-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const quizId = this.getAttribute('data-id');
+                        const correctAnswer = this.getAttribute('data-answer');
+                        const explanation = this.getAttribute('data-explanation');
+                        
+                        // 获取用户选择的答案
+                        const selectedOption = document.querySelector(`input[name="quiz-${quizId}"]:checked`);
+                        
+                        if (!selectedOption) {
+                            showToast('warning', '请先选择一个答案');
+                            return;
+                        }
+                        
+                        const selectedAnswer = selectedOption.value;
+                        const resultContainer = document.querySelector(`.quiz-result-${quizId}`);
+                        
+                        // 检查答案是否正确
+                        if (selectedAnswer === correctAnswer) {
+                            resultContainer.innerHTML = `
+                                <div class="alert alert-success mt-2">
+                                    <i class="fas fa-check-circle me-2"></i> 正确！
+                                    ${explanation ? `<div class="mt-2">解析：${explanation}</div>` : ''}
+                                </div>
+                            `;
+                        } else {
+                            resultContainer.innerHTML = `
+                                <div class="alert alert-danger mt-2">
+                                    <i class="fas fa-times-circle me-2"></i> 错误！正确答案是：${correctAnswer}
+                                    ${explanation ? `<div class="mt-2">解析：${explanation}</div>` : ''}
+                                </div>
+                            `;
+                        }
+                        
+                        resultContainer.style.display = 'block';
+                    });
+                });
+            } else {
+                quizzesContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i> 加载测试题目失败：${data.message}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('加载测试题目失败:', error);
+            quizzesContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i> 加载测试题目失败：${error.message}
+                </div>
+            `;
+        });
+}
+
+/**
+ * 显示提示消息
+ */
+function showToast(type, message) {
+    // 创建Toast元素
+    const toastContainer = document.createElement('div');
+    toastContainer.className = 'position-fixed top-0 end-0 p-3';
+    toastContainer.style.zIndex = '5000';
+    
+    const toastId = `toast-${Date.now()}`;
+    
+    let bgClass = '';
+    let icon = '';
+    
+    switch(type) {
+        case 'success':
+            bgClass = 'bg-success';
+            icon = '<i class="fas fa-check-circle me-2"></i>';
+            break;
+        case 'error':
+            bgClass = 'bg-danger';
+            icon = '<i class="fas fa-exclamation-circle me-2"></i>';
+            break;
+        case 'warning':
+            bgClass = 'bg-warning';
+            icon = '<i class="fas fa-exclamation-triangle me-2"></i>';
+            break;
+        case 'info':
+            bgClass = 'bg-info';
+            icon = '<i class="fas fa-info-circle me-2"></i>';
+            break;
+    }
+    
+    toastContainer.innerHTML = `
+        <div id="${toastId}" class="toast ${bgClass} text-white" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                ${icon} <strong class="me-auto">提示</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                ${message}
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(toastContainer);
+    
+    const toastElement = document.getElementById(toastId);
+    const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
+    
+    toast.show();
+    
+    // 监听toast隐藏事件，删除元素
+    toastElement.addEventListener('hidden.bs.toast', function() {
+        document.body.removeChild(toastContainer);
+    });
+}
+
+/**
+ * 删除问答
+ */
+function deleteFaq(faqId) {
+    if (!confirm('确定要删除此问答吗？')) {
+        return;
+    }
+    
+    // 获取当前选中的section_id
+    const faqSelect = document.getElementById('faqSelect');
+    const selectedOption = faqSelect.options[faqSelect.selectedIndex];
+    const sectionId = selectedOption.dataset.sectionId;
+    
+    fetch('/api/scientific/faq/' + faqId, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('success', '删除问答成功');
+            
+            // 清除该section的缓存
+            if (cachedFaqs[sectionId]) {
+                delete cachedFaqs[sectionId];
+            }
+            
+            // 重新加载问答列表
+            loadFaqs(sectionId);
+        } else {
+            showToast('error', '删除问答失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('删除问答失败:', error);
+        showToast('error', '删除问答失败：' + error.message);
+    });
+}
+</script>
+{% endblock %}

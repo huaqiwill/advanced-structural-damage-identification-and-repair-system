@@ -1,0 +1,124 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}管理员登录 - 结构损伤的高级识别和绘图{% endblock %}
+
+{% block extra_css %}
+<style>
+    .login-container {
+        margin-top: 60px;
+        max-width: 400px;
+        margin: 80px auto 2rem auto;
+        padding: 2rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        background-color: #f8f9fa;
+    }
+    .login-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .login-header i {
+        font-size: 3rem;
+        color: var(--theme-color);
+        margin-bottom: 1rem;
+    }
+    .form-floating {
+        margin-bottom: 1rem;
+    }
+    .btn-login {
+        width: 100%;
+        background-color: var(--theme-color);
+        border-color: var(--theme-color);
+    }
+    .btn-login:hover {
+        background-color: var(--theme-color-dark);
+        border-color: var(--theme-color-dark);
+    }
+    .admin-badge {
+        background-color: #dc3545;
+        color: white;
+        font-size: 0.8rem;
+        padding: 3px 8px;
+        border-radius: 4px;
+        display: inline-block;
+        margin-left: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-header">
+        <i class="fas fa-user-shield"></i>
+        <h2>管理员登录 <span class="admin-badge">ADMIN</span></h2>
+        <p class="text-muted">请输入管理员账号和密码</p>
+    </div>
+    
+    <form method="POST" action="{{ url_for('admin.admin_login') }}">
+        <div class="form-floating">
+            <input type="text" class="form-control" id="username" name="username" placeholder="管理员用户名" required>
+            <label for="username">管理员用户名</label>
+        </div>
+        <div class="form-floating">
+            <input type="password" class="form-control" id="password" name="password" placeholder="密码" required>
+            <label for="password">密码</label>
+        </div>
+        <button type="submit" class="btn btn-primary btn-login">
+            <i class="fas fa-sign-in-alt me-2"></i>登录
+        </button>
+    </form>
+    
+    <div class="text-center mt-3">
+        <a href="{{ url_for('login') }}" class="text-decoration-none">
+            <i class="fas fa-arrow-left me-1"></i>返回普通用户登录
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 管理员登录表单提交处理
+    document.addEventListener('DOMContentLoaded', function() {
+        const loginForm = document.querySelector('form');
+        
+        loginForm.addEventListener('submit', function(event) {
+            const username = document.getElementById('username').value.trim();
+            
+            if (username) {
+                // 将用户名临时存储在localStorage中，以便登录成功后使用
+                localStorage.setItem('temp_username', username);
+                console.log('临时存储用户名:', username);
+            }
+        });
+    });
+
+    // 如果有flash消息显示"登录成功"，说明登录已成功，将用户信息保存到localStorage
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    {% if category == 'success' and '登录成功' in message %}
+    // 从临时存储中获取用户名
+    const username = localStorage.getItem('temp_username');
+    if (username) {
+        const userInfo = {
+            userId: {{ session.get('user_id', '0') }},
+            username: username,
+            isAdmin: true,
+            loginTime: {{ session.get('login_time', 'Math.floor(Date.now() / 1000)') | safe }}
+        };
+        
+        // 保存到localStorage
+        localStorage.setItem('userInfo', JSON.stringify(userInfo));
+        console.log('已将用户信息保存到localStorage:', userInfo);
+        
+        // 清除临时存储
+        localStorage.removeItem('temp_username');
+    }
+    {% endif %}
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+</script>
+{% endblock %}

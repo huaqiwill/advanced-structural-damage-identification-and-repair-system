@@ -1,0 +1,602 @@
+{% extends "base.html" %}
+
+{% block title %}科普知识 - 结构损伤的高级识别和绘图{% endblock %}
+
+{% block extra_css %}
+<style>
+    .main-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    .knowledge-section {
+        background-color: #fff;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 2rem;
+        margin-bottom: 2rem;
+        transition: transform 0.3s;
+    }
+    .knowledge-section:hover {
+        transform: translateY(-5px);
+    }
+    .section-title {
+        color: var(--theme-color);
+        font-weight: bold;
+        border-bottom: 2px solid var(--theme-color);
+        padding-bottom: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .category-card {
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid var(--theme-color);
+        transition: all 0.3s;
+    }
+    .category-card:hover {
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+    }
+    .category-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        color: var(--theme-color);
+    }
+    .eco-tip {
+        background-color: #e8f5e9;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: flex-start;
+    }
+    .tip-icon {
+        color: #4caf50;
+        font-size: 1.5rem;
+        margin-right: 1rem;
+    }
+    .faq-item {
+        border-bottom: 1px solid #e9ecef;
+        padding: 1rem 0;
+    }
+    .faq-question {
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #343a40;
+    }
+    .faq-answer {
+        padding-top: 1rem;
+        display: none;
+        color: #6c757d;
+    }
+    .faq-answer.active {
+        display: block;
+    }
+    .toggle-icon {
+        transition: transform 0.3s;
+    }
+    .toggle-icon.active {
+        transform: rotate(45deg);
+    }
+    .video-container {
+        position: relative;
+        padding-bottom: 56.25%; /* 16:9 比例 */
+        height: 0;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+    .video-container iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: 10px;
+    }
+    .infographic {
+        max-width: 100%;
+        height: auto;
+        border-radius: 10px;
+        margin-bottom: 1.5rem;
+    }
+    .quiz-container {
+        background-color: #f0f8ff;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-top: 2rem;
+    }
+    .quiz-question {
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+    .quiz-options {
+        margin-bottom: 1.5rem;
+    }
+    .option-item {
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    .fade-in {
+        animation: fadeIn 1s ease-in;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="text-center mb-4">
+        <h2 class="display-5 fw-bold text-theme">垃圾分类科普知识</h2>
+        <p class="lead text-muted">了解水面漂浮垃圾分类，共同保护水环境</p>
+    </div>
+
+    {% if content_data is defined and content_data.sections %}
+    <!-- 从数据库加载内容 -->
+    {% for section in content_data.sections %}
+    <div class="knowledge-section fade-in">
+        <h3 class="section-title">{{ section.title }}</h3>
+        
+        {% if section.image_path %}
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                {{ section.content|safe }}
+            </div>
+            <div class="col-lg-6">
+                <img src="{{ section.image_path }}" class="img-fluid rounded" alt="{{ section.title }}">
+            </div>
+        </div>
+        {% else %}
+        <div class="row">
+            <div class="col-12">
+                {{ section.content|safe }}
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if section.content_type == 'faq' and content_data.faqs %}
+        <!-- FAQ内容 -->
+        <div class="faq-container">
+            {% for faq in content_data.faqs %}
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>{{ faq.question }}</span>
+                    <i class="fas fa-plus toggle-icon"></i>
+                </div>
+                <div class="faq-answer">
+                    {{ faq.answer|safe }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        {% if section.content_type == 'quiz' and content_data.questions %}
+        <!-- 测试内容 -->
+        <div class="quiz-container" id="quizContainer">
+            <div id="quizSection" data-section-id="{{ section.id }}">
+                <div class="quiz-question" id="question">{{ content_data.questions[0].question }}</div>
+                <div class="quiz-options">
+                    {% for option in content_data.questions[0].options %}
+                    <label class="option-item"><input type="radio" name="q1" value="{{ loop.index0 }}"> {{ option }}</label>
+                    {% endfor %}
+                </div>
+                <button class="btn btn-theme" id="submitQuiz">提交答案</button>
+                <div class="mt-3 d-none" id="quizResult"></div>
+                <div class="mt-3 d-none" id="nextQuestion">
+                    <button class="btn btn-outline-theme">下一题</button>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+    
+    {% else %}
+    <!-- 静态内容（默认内容） -->
+    <!-- 简介部分 -->
+    <div class="knowledge-section fade-in">
+        <h3 class="section-title">水面漂浮垃圾的危害</h3>
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <p>水面漂浮垃圾是指漂浮在水体表面的各类人为废弃物，如塑料瓶、食品包装、泡沫塑料、废纸等。这些漂浮垃圾不仅影响水体景观，更对水生态系统和环境造成严重危害：</p>
+                <ul>
+                    <li><strong>生态危害</strong>：威胁水生动物生存，导致误食和缠绕伤害</li>
+                    <li><strong>环境污染</strong>：分解过程释放有害物质，污染水源</li>
+                    <li><strong>资源浪费</strong>：大量可回收资源未得到合理利用</li>
+                    <li><strong>景观破坏</strong>：影响水域景观和旅游资源价值</li>
+                </ul>
+                <p>通过科学的垃圾分类和及时清理，我们可以有效减少水面漂浮垃圾，保护珍贵的水资源。</p>
+            </div>
+            <div class="col-lg-6">
+                <img src="/static/img/water_pollution.jpg" class="img-fluid rounded" alt="水面垃圾污染">
+            </div>
+        </div>
+    </div>
+
+    <!-- 分类知识 -->
+    <div class="knowledge-section fade-in">
+        <h3 class="section-title">水面漂浮垃圾分类指南</h3>
+        <p class="mb-4">根据我国垃圾分类标准和水面垃圾特点，水面漂浮垃圾主要可分为以下几类：</p>
+        
+        <div class="category-card">
+            <div class="row">
+                <div class="col-md-2 text-center">
+                    <i class="fas fa-recycle category-icon"></i>
+                </div>
+                <div class="col-md-10">
+                    <h4>可回收物</h4>
+                    <p>指适宜回收和资源利用的垃圾，经分拣、整理后可以回收利用的物品。</p>
+                    <p><strong>常见水面可回收物：</strong>塑料瓶、玻璃瓶、饮料罐、包装盒、废金属等</p>
+                    <p><strong>处理方式：</strong>清洗、分类后送至回收站或垃圾分类回收点</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="category-card">
+            <div class="row">
+                <div class="col-md-2 text-center">
+                    <i class="fas fa-utensils category-icon"></i>
+                </div>
+                <div class="col-md-10">
+                    <h4>厨余垃圾</h4>
+                    <p>指易腐烂的、含有机质的垃圾，包括食物残渣等。</p>
+                    <p><strong>常见水面厨余垃圾：</strong>食物残渣、果皮、水果壳等</p>
+                    <p><strong>处理方式：</strong>收集后进行堆肥处理或专门的厨余垃圾处理设施</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="category-card">
+            <div class="row">
+                <div class="col-md-2 text-center">
+                    <i class="fas fa-skull-crossbones category-icon"></i>
+                </div>
+                <div class="col-md-10">
+                    <h4>有害垃圾</h4>
+                    <p>指对人体健康或自然环境造成直接或潜在危害的垃圾。</p>
+                    <p><strong>常见水面有害垃圾：</strong>废电池、废荧光灯管、废药品、油漆桶等</p>
+                    <p><strong>处理方式：</strong>特殊收集，由专门机构进行无害化处理</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="category-card">
+            <div class="row">
+                <div class="col-md-2 text-center">
+                    <i class="fas fa-trash-alt category-icon"></i>
+                </div>
+                <div class="col-md-10">
+                    <h4>其他垃圾</h4>
+                    <p>指除可回收物、厨余垃圾、有害垃圾以外的其他生活垃圾。</p>
+                    <p><strong>常见水面其他垃圾：</strong>一次性塑料制品、泡沫塑料、废纸、烟头等</p>
+                    <p><strong>处理方式：</strong>通常采用焚烧或填埋方式处理</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 环保小贴士 -->
+    <div class="knowledge-section fade-in">
+        <h3 class="section-title">水环境保护小贴士</h3>
+        <p class="mb-4">保护水环境，预防水面垃圾产生，从我们的日常行为做起：</p>
+        
+        <div class="eco-tip">
+            <div class="tip-icon">
+                <i class="fas fa-leaf"></i>
+            </div>
+            <div>
+                <h5>减少使用一次性塑料制品</h5>
+                <p>自带购物袋、水杯，避免使用一次性塑料袋、塑料瓶和塑料餐具，减少塑料垃圾进入水环境的可能性。</p>
+            </div>
+        </div>
+        
+        <div class="eco-tip">
+            <div class="tip-icon">
+                <i class="fas fa-recycle"></i>
+            </div>
+            <div>
+                <h5>正确进行垃圾分类</h5>
+                <p>学习和践行垃圾分类知识，确保垃圾被正确处理，减少因垃圾处理不当而流入水体的风险。</p>
+            </div>
+        </div>
+        
+        <div class="eco-tip">
+            <div class="tip-icon">
+                <i class="fas fa-hand-holding-water"></i>
+            </div>
+            <div>
+                <h5>参与水域清洁活动</h5>
+                <p>积极参与社区组织的水域垃圾清理志愿活动，亲身参与保护水环境的行动。</p>
+            </div>
+        </div>
+        
+        <div class="eco-tip">
+            <div class="tip-icon">
+                <i class="fas fa-bullhorn"></i>
+            </div>
+            <div>
+                <h5>宣传环保理念</h5>
+                <p>通过社交媒体和日常交流，向身边的人宣传水环境保护的重要性，扩大环保影响力。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 互动问答 -->
+    <div class="knowledge-section fade-in">
+        <h3 class="section-title">常见问题解答</h3>
+        <div class="faq-container">
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>什么是微塑料，它对水生态有什么危害？</span>
+                    <i class="fas fa-plus toggle-icon"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>微塑料是指直径小于5毫米的塑料颗粒，通常由大型塑料垃圾在环境中分解而来。它们对水生态的危害主要包括：</p>
+                    <ul>
+                        <li>被水生生物误食，导致其消化系统堵塞或造成内部伤害</li>
+                        <li>微塑料表面可吸附有毒物质，通过食物链传递和富集，最终可能危害人类健康</li>
+                        <li>影响水体自净能力，破坏水生态系统平衡</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>为什么塑料垃圾在水中分解需要很长时间？</span>
+                    <i class="fas fa-plus toggle-icon"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>塑料垃圾在水中分解缓慢主要因为：</p>
+                    <ul>
+                        <li>塑料由人工合成的聚合物组成，自然界中很少有微生物能够有效分解这些化学结构</li>
+                        <li>水环境温度相对稳定且较低，减缓了塑料的光降解和热降解过程</li>
+                        <li>大部分塑料设计初衷就是为了耐用，具有优良的稳定性</li>
+                    </ul>
+                    <p>不同类型的塑料在水环境中的分解时间从数十年到数百年不等。例如，塑料袋约需20年，塑料瓶约需450年，渔网约需600年。</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>人工智能技术如何应用于水面垃圾检测？</span>
+                    <i class="fas fa-plus toggle-icon"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>人工智能技术在水面垃圾检测中的应用主要包括：</p>
+                    <ul>
+                        <li><strong>计算机视觉识别</strong>：通过深度学习算法训练模型识别不同类型的水面垃圾</li>
+                        <li><strong>无人机巡查</strong>：结合无人机和AI系统实现大范围水域垃圾自动监测</li>
+                        <li><strong>智能清理系统</strong>：基于AI识别结果，指导自动化清理设备进行精准清理</li>
+                        <li><strong>数据分析预测</strong>：分析垃圾分布规律，预测垃圾聚集热点，提高清理效率</li>
+                    </ul>
+                    <p>本系统正是利用深度学习技术实现了对水面垃圾的自动检测和分类。</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>个人如何参与水环境保护工作？</span>
+                    <i class="fas fa-plus toggle-icon"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>个人参与水环境保护的方式有很多：</p>
+                    <ul>
+                        <li>减少使用一次性塑料制品，选择可重复使用的替代品</li>
+                        <li>户外活动时，确保带走自己产生的所有垃圾</li>
+                        <li>参与社区组织的水域清洁志愿活动</li>
+                        <li>支持使用环保材料和减少包装的产品和企业</li>
+                        <li>在社交媒体上分享水环境保护信息，提高公众意识</li>
+                        <li>向当地政府反映水污染问题，推动政策改进</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 环保知识测试 -->
+    <div class="knowledge-section fade-in">
+        <h3 class="section-title">环保知识小测试</h3>
+        <p class="mb-4">测试一下您对水面垃圾分类和环保知识的掌握程度：</p>
+        
+        <div class="quiz-container" id="quizContainer">
+            <div class="quiz-question" id="question">1. 下列哪种垃圾在水中分解时间最长？</div>
+            <div class="quiz-options">
+                <label class="option-item"><input type="radio" name="q1" value="A"> A. 纸巾</label>
+                <label class="option-item"><input type="radio" name="q1" value="B"> B. 塑料袋</label>
+                <label class="option-item"><input type="radio" name="q1" value="C"> C. 玻璃瓶</label>
+                <label class="option-item"><input type="radio" name="q1" value="D"> D. 苹果核</label>
+            </div>
+            <button class="btn btn-theme" id="submitQuiz">提交答案</button>
+            <div class="mt-3 d-none" id="quizResult"></div>
+            <div class="mt-3 d-none" id="nextQuestion">
+                <button class="btn btn-outline-theme">下一题</button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // FAQ 交互功能
+    const faqQuestions = document.querySelectorAll('.faq-question');
+    
+    faqQuestions.forEach(question => {
+        question.addEventListener('click', function() {
+            const answer = this.nextElementSibling;
+            const icon = this.querySelector('.toggle-icon');
+            
+            // 切换回答的显示状态
+            answer.classList.toggle('active');
+            icon.classList.toggle('active');
+            
+            // 关闭其他打开的问题
+            faqQuestions.forEach(q => {
+                if (q !== question) {
+                    q.nextElementSibling.classList.remove('active');
+                    q.querySelector('.toggle-icon').classList.remove('active');
+                }
+            });
+        });
+    });
+    
+    // 小测试功能
+    const quizContainer = document.getElementById('quizContainer');
+    if (!quizContainer) return; // 如果没有测试容器，不执行后续代码
+    
+    const questionEl = document.getElementById('question');
+    const submitBtn = document.getElementById('submitQuiz');
+    const resultEl = document.getElementById('quizResult');
+    const nextBtn = document.getElementById('nextQuestion');
+    
+    // 测试题库
+    {% if content_data is defined and content_data.questions %}
+    // 使用从数据库加载的题目
+    const quizQuestions = [
+        {% for question in content_data.questions %}
+        {
+            question: "{{ question.question }}",
+            options: {{ question.options|tojson }},
+            answer: "{{ question.answer }}",
+            explanation: "{{ question.explanation }}"
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+    {% else %}
+    // 使用静态题目
+    const quizQuestions = [
+        {
+            question: "1. 下列哪种垃圾在水中分解时间最长？",
+            options: [
+                "A. 纸巾", 
+                "B. 塑料袋", 
+                "C. 玻璃瓶", 
+                "D. 苹果核"
+            ],
+            answer: "C",
+            explanation: "玻璃瓶在自然环境中分解需要约100万年，远长于塑料袋（10-20年）、纸巾（2-4周）和苹果核（1-2个月）。"
+        },
+        {
+            question: "2. 以下哪类不属于水面漂浮垃圾中的可回收物？",
+            options: [
+                "A. 塑料瓶", 
+                "B. 烟头", 
+                "C. 饮料罐", 
+                "D. 纸板箱"
+            ],
+            answer: "B",
+            explanation: "烟头含有多种有害物质，属于其他垃圾，不可回收。塑料瓶、饮料罐和纸板箱均可回收利用。"
+        },
+        {
+            question: "3. 关于微塑料的说法，错误的是：",
+            options: [
+                "A. 微塑料可以被鱼类摄入体内", 
+                "B. 微塑料主要来源于大型塑料垃圾的分解", 
+                "C. 微塑料在短时间内会自然分解无害", 
+                "D. 微塑料可能通过食物链影响人类健康"
+            ],
+            answer: "C",
+            explanation: "微塑料不会在短时间内自然分解无害，相反，它们会在环境中持续存在很长时间。"
+        },
+        {
+            question: "4. 下列哪项行为有助于减少水面垃圾污染？",
+            options: [
+                "A. 将废弃物统一丢入垃圾桶不分类", 
+                "B. 使用可降解塑料袋代替普通塑料袋", 
+                "C. 重复使用塑料瓶装水", 
+                "D. 以上都是"
+            ],
+            answer: "D",
+            explanation: "以上行为都有助于减少水面垃圾污染。垃圾分类有助于减少废物流入水体；可降解塑料减少长期污染；重复使用减少一次性塑料制品的消耗。"
+        }
+    ];
+    {% endif %}
+    
+    let currentQuestion = 0;
+    
+    // 修改提交答案的处理函数
+    submitBtn.addEventListener('click', function() {
+        const selectedOption = document.querySelector(`input[name="q${currentQuestion+1}"]:checked`);
+        
+        if (!selectedOption) {
+            alert('请选择一个答案');
+            return;
+        }
+        
+        // 获取用户选择的值
+        const selectedValue = selectedOption.value;
+        // 获取正确答案
+        const correctAnswer = quizQuestions[currentQuestion].answer;
+        
+        resultEl.classList.remove('d-none');
+        nextBtn.classList.remove('d-none');
+        
+        // 修复比较逻辑，确保直接比较选择的值和正确答案
+        if (selectedValue === correctAnswer) {
+            resultEl.innerHTML = `<div class="alert alert-success">
+                <i class="fas fa-check-circle me-2"></i>正确！${quizQuestions[currentQuestion].explanation}
+            </div>`;
+        } else {
+            resultEl.innerHTML = `<div class="alert alert-danger">
+                <i class="fas fa-times-circle me-2"></i>错误！正确答案是 ${correctAnswer}. ${quizQuestions[currentQuestion].explanation}
+            </div>`;
+        }
+        
+        submitBtn.disabled = true;
+    });
+    
+    // 修改生成选项的逻辑
+    function generateOptions() {
+        const options = quizQuestions[currentQuestion].options;
+        let optionsHtml = '';
+        
+        // 使用字母索引生成选项
+        for (let i = 0; i < options.length; i++) {
+            const optionValue = String.fromCharCode(65 + i); // 'A', 'B', 'C', 'D'...
+            optionsHtml += `<label class="option-item"><input type="radio" name="q${currentQuestion+1}" value="${optionValue}"> ${options[i]}</label>`;
+        }
+        
+        document.querySelector('.quiz-options').innerHTML = optionsHtml;
+    }
+    
+    // 初始化第一题选项
+    generateOptions();
+    
+    // 下一题按钮处理
+    nextBtn.querySelector('button').addEventListener('click', function() {
+        currentQuestion++;
+        
+        if (currentQuestion < quizQuestions.length) {
+            // 显示下一题
+            questionEl.textContent = quizQuestions[currentQuestion].question;
+            
+            // 使用新的生成选项函数
+            generateOptions();
+            
+            // 重置UI
+            resultEl.classList.add('d-none');
+            nextBtn.classList.add('d-none');
+            submitBtn.disabled = false;
+        } else {
+            // 测试完成
+            quizContainer.innerHTML = `
+                <div class="alert alert-success text-center">
+                    <i class="fas fa-award fa-2x mb-3"></i>
+                    <h4>测试完成！</h4>
+                    <p>感谢您参与环保知识测试。请继续学习和实践环保知识，共同保护我们的水环境。</p>
+                </div>
+            `;
+        }
+    });
+});
+</script>
+{% endblock %}

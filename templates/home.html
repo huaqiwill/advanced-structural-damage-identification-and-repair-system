@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}主页 - 结构损伤的高级识别和绘图{% endblock %}
+
+{% block extra_css %}
+<style>
+    .feature-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        height: 100%;
+        background-color: #fff;
+        padding: 2rem;
+    }
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 12px rgba(13, 110, 253, 0.15);
+    }
+    .feature-icon {
+        font-size: 3rem;
+        margin-bottom: 1.5rem;
+        color: var(--theme-color);
+    }
+    .category-badge {
+        font-size: 0.9rem;
+        margin: 0.2rem;
+        padding: 0.5rem 1rem;
+        background-color: var(--theme-color);
+    }
+    .btn-theme {
+        background-color: var(--theme-color);
+        border-color: var(--theme-color);
+        color: #fff;
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+    .btn-theme:hover {
+        background-color: var(--theme-color-dark);
+        border-color: var(--theme-color-dark);
+        color: #fff;
+        transform: translateY(-2px);
+    }
+    .text-theme {
+        color: var(--theme-color) !important;
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    .pulse {
+        animation: pulse 2s infinite;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- 欢迎信息 -->
+    <div class="text-center mb-5">
+        <h1 class="display-4 mb-3 text-theme">欢迎使用结构损伤的高级识别和绘图</h1>
+        <p class="lead text-muted">结构损伤的高级识别和绘图，支持图片、视频和实时检测</p>
+    </div>
+
+    <!-- 功能卡片 -->
+    <div class="row g-4 mb-5">
+        <!-- 图片检测 -->
+        <div class="col-md-4">
+            <div class="card feature-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-image feature-icon"></i>
+                    <h3 class="card-title mb-3">图片检测</h3>
+                    <p class="card-text mb-4">支持上传图片进行垃圾分类检测，快速识别图片中水面上的垃圾类型。</p>
+                    <a href="{{ url_for('image_detection') }}" class="btn btn-theme">
+                        <i class="fas fa-arrow-right me-2"></i>开始检测
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 视频检测 -->
+        <div class="col-md-4">
+            <div class="card feature-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-video feature-icon"></i>
+                    <h3 class="card-title mb-3">视频检测</h3>
+                    <p class="card-text mb-4">上传视频文件进行检测，系统将自动分析视频中水面上的垃圾类型。</p>
+                    <a href="{{ url_for('video_detection') }}" class="btn btn-theme">
+                        <i class="fas fa-arrow-right me-2"></i>开始检测
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 实时检测 -->
+        <div class="col-md-4">
+            <div class="card feature-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-camera feature-icon pulse"></i>
+                    <h3 class="card-title mb-3">实时检测</h3>
+                    <p class="card-text mb-4">使用摄像头实时检测水面上的垃圾类型，适合动态场景的即时分析。</p>
+                    <a href="{{ url_for('realtime_detection') }}" class="btn btn-theme">
+                        <i class="fas fa-arrow-right me-2"></i>开始检测
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 支持的垃圾类别 -->
+    <div class="text-center mb-4">
+        <h2 class="text-theme">支持检测的垃圾类别</h2>
+        <p class="text-muted">目前系统支持以下类别的垃圾识别</p>
+    </div>
+    <div class="row justify-content-center mb-5">
+        <div class="col-md-10">
+            <div class="text-center">
+                {% for name in config['CH_NAMES'] %}
+                <span class="badge category-badge">{{ name }}</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 科普知识入口 -->
+    <div class="row justify-content-center mb-5">
+        <div class="col-md-8">
+            <div class="card feature-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-book-open feature-icon"></i>
+                    <h3 class="card-title mb-3">垃圾分类科普知识</h3>
+                    <p class="card-text mb-4">了解水面漂浮垃圾的分类知识、环境危害以及保护水环境的方法，增强环保意识。</p>
+                    <a href="{{ url_for('scientific') }}" class="btn btn-theme">
+                        <i class="fas fa-arrow-right me-2"></i>查看科普
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 使用说明 -->
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title text-center mb-4 text-theme">使用说明</h3>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-check-circle text-theme me-2"></i>图片检测</h5>
+                            <ul>
+                                <li>支持JPG、PNG、JPEG格式</li>
+                                <li>图片大小不超过16MB</li>
+                                <li>可同时检测多个目标</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-check-circle text-theme me-2"></i>视频检测</h5>
+                            <ul>
+                                <li>支持MP4、AVI、MOV格式</li>
+                                <li>视频大小不超过100MB</li>
+                                <li>可保存检测结果</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-check-circle text-theme me-2"></i>实时检测</h5>
+                            <ul>
+                                <li>支持摄像头实时检测</li>
+                                <li>可保存检测截图</li>
+                                <li>实时显示检测结果</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

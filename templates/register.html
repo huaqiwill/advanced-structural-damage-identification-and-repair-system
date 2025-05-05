@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}注册 - 结构损伤的高级识别和绘图{% endblock %}
+
+{% block extra_css %}
+<style>
+    .register-container {
+        max-width: 400px;
+        margin: 2rem auto;
+        padding: 2rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .register-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .register-header i {
+        font-size: 3rem;
+        color: #28a745;
+        margin-bottom: 1rem;
+    }
+    .form-floating {
+        margin-bottom: 1rem;
+    }
+    .btn-register {
+        width: 100%;
+    }
+    .login-link {
+        text-align: center;
+        margin-top: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="register-container">
+    <div class="register-header">
+        <i class="fas fa-user-plus"></i>
+        <h2>用户注册</h2>
+        <p class="text-muted">创建新账号</p>
+    </div>
+    
+    <form method="POST" action="{{ url_for('register') }}" onsubmit="return validateForm()">
+        <div class="form-floating">
+            <input type="text" class="form-control" id="username" name="username" 
+                   placeholder="用户名" required minlength="3" maxlength="20">
+            <label for="username">用户名</label>
+            <div class="form-text">用户名长度需在3-20个字符之间</div>
+        </div>
+        <div class="form-floating">
+            <input type="password" class="form-control" id="password" name="password" 
+                   placeholder="密码" required minlength="6">
+            <label for="password">密码</label>
+            <div class="form-text">密码长度至少6个字符</div>
+        </div>
+        <div class="form-floating">
+            <input type="password" class="form-control" id="confirm_password" name="confirm_password" 
+                   placeholder="确认密码" required>
+            <label for="confirm_password">确认密码</label>
+        </div>
+        <button type="submit" class="btn btn-success btn-register">
+            <i class="fas fa-user-plus me-2"></i>注册
+        </button>
+    </form>
+    
+    <div class="login-link">
+        <p>已有账号？ <a href="{{ url_for('login') }}">立即登录</a></p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function validateForm() {
+    var password = document.getElementById("password").value;
+    var confirmPassword = document.getElementById("confirm_password").value;
+    
+    if (password !== confirmPassword) {
+        alert("两次输入的密码不一致！");
+        return false;
+    }
+    return true;
+}
+</script>
+{% endblock %} 

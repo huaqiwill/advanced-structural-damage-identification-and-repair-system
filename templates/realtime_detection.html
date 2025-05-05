@@ -1,0 +1,1238 @@
+{% extends "base.html" %}
+
+{% block title %}实时检测 - 结构损伤的高级识别和绘图{% endblock %}
+
+{% block extra_css %}
+<style>
+    .main-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    .camera-container {
+        background-color: #fff;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border: 2px solid var(--theme-color);
+    }
+    .video-feed {
+        width: 100%;
+        border-radius: 10px;
+        background-color: #000;
+        margin-bottom: 1rem;
+        display: none;
+    }
+    .controls {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin: 1rem 0;
+    }
+    .control-btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    .control-btn:hover {
+        transform: translateY(-2px);
+    }
+    .control-btn i {
+        margin-right: 0.5rem;
+    }
+    .stats-container {
+        background-color: #fff;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .stats-card {
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+    }
+    .stats-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    .object-list {
+        max-height: 300px;
+        overflow-y: auto;
+        padding: 1rem;
+        background-color: #f8f9fa;
+        border-radius: 10px;
+    }
+    .object-item {
+        padding: 0.5rem;
+        margin-bottom: 0.5rem;
+        background-color: #fff;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+    }
+    .object-item:hover {
+        transform: translateX(5px);
+    }
+    .canvas-container {
+        position: relative;
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+    #detectionCanvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+    }
+    .camera-placeholder {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 400px;
+        border: 2px dashed #d1d1d1;
+        border-radius: 10px;
+        background-color: #f8f9fa;
+        text-align: center;
+        padding: 30px;
+    }
+    .camera-icon {
+        font-size: 4rem;
+        color: #6c757d;
+        margin-bottom: 1.5rem;
+    }
+    .detection-alert {
+        background-color: #fef2f2;
+        border-left: 4px solid #dc3545;
+        padding: 10px 15px;
+        margin-top: 15px;
+        border-radius: 4px;
+        display: none;
+    }
+    .detection-alert.active {
+        display: flex;
+        align-items: center;
+    }
+    .alert-icon {
+        color: #dc3545;
+        font-size: 1.2rem;
+        margin-right: 10px;
+    }
+    .api-status {
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        margin-top: 10px;
+        color: #6c757d;
+    }
+    .status-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 8px;
+    }
+    .status-success {
+        background-color: #28a745;
+    }
+    .status-error {
+        background-color: #dc3545;
+    }
+    .status-pending {
+        background-color: #ffc107;
+    }
+    .debug-info {
+        margin-top: 10px;
+        padding: 8px;
+        font-size: 12px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        color: #666;
+        display: none;
+    }
+    .result-image {
+        display: none;
+        max-width: 100%;
+        height: auto;
+        border-radius: 10px;
+        margin-top: 15px;
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    .pulse {
+        animation: pulse 2s infinite;
+    }
+    .preview-modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.7);
+    }
+    
+    .preview-modal-content {
+        position: relative;
+        background-color: #fff;
+        margin: 5% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        border-radius: 10px;
+        width: 80%;
+        max-width: 1200px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    .close-preview {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    
+    .close-preview:hover {
+        color: #000;
+    }
+    
+    .video-container {
+        margin-top: 15px;
+    }
+    
+    .video-player {
+        width: 100%;
+        border-radius: 5px;
+        background-color: #000;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="text-center mb-4">
+        <h2 class="display-5 fw-bold text-theme">实时检测</h2>
+        <p class="lead text-muted">使用摄像头实时识别水面垃圾类型</p>
+    </div>
+
+    <div class="row">
+        <!-- 左侧摄像头和控制区域 -->
+        <div class="col-lg-8">
+            <div class="camera-container">
+                <div id="cameraPlaceholder" class="camera-placeholder">
+                    <i class="fas fa-video camera-icon"></i>
+                    <h5 class="mb-3">点击"开始检测"按钮启动摄像头</h5>
+                    <p class="text-muted">确保您已允许浏览器使用摄像头</p>
+                </div>
+                
+                <div class="canvas-container">
+                    <video id="videoFeed" class="video-feed" autoplay playsinline></video>
+                    <canvas id="detectionCanvas"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <button id="startBtn" class="btn btn-theme control-btn">
+                        <i class="fas fa-play"></i>开始检测
+                    </button>
+                    <button id="stopBtn" class="btn btn-danger control-btn" disabled>
+                        <i class="fas fa-stop"></i>停止检测
+                    </button>
+                    <button id="captureBtn" class="btn btn-theme control-btn" disabled>
+                        <i class="fas fa-camera"></i>拍照保存
+                    </button>
+                </div>
+                
+                <div class="detection-alert" id="detectionAlert">
+                    <span class="alert-icon"><i class="fas fa-exclamation-triangle"></i></span>
+                    <strong>检测到水面垃圾！</strong> <span id="alertTime"></span>
+                </div>
+                
+                <div class="api-status" id="apiStatus">
+                    <div class="status-indicator status-pending" id="statusIndicator"></div>
+                    <span id="statusText">等待检测</span>
+                </div>
+                
+                <div class="debug-info" id="debugInfo">
+                    <div><strong>最近发送:</strong> <span id="lastSentTime">-</span></div>
+                    <div><strong>最近接收:</strong> <span id="lastReceivedTime">-</span></div>
+                    <div><strong>API状态:</strong> <span id="apiStatusText">-</span></div>
+                </div>
+
+                <img id="resultImage" class="result-image" alt="检测结果图像" />
+            </div>
+        </div>
+
+        <!-- 右侧检测信息区域 -->
+        <div class="col-lg-4">
+            <div class="stats-container">
+                <h5 class="mb-4">检测信息</h5>
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="stats-card text-center">
+                            <h6 class="mb-2">检测时间</h6>
+                            <p id="detectionTime" class="mb-0 fs-5">-</p>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stats-card text-center">
+                            <h6 class="mb-2">帧率</h6>
+                            <p id="fps" class="mb-0 fs-5">-</p>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="stats-card text-center">
+                            <h6 class="mb-2">目标数量</h6>
+                            <p id="objectCount" class="mb-0 fs-5">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="mt-4 mb-3">检测结果</h5>
+                <div id="objectList" class="object-list">
+                    <!-- 检测结果将动态添加到这里 -->
+                    <div class="text-center text-muted py-4" id="noResultsMsg">
+                        <i class="fas fa-search fa-2x mb-3"></i>
+                        <p>开始检测后，此处会显示检测结果</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加视频预览模态框 -->
+<div id="videoPreviewModal" class="preview-modal">
+    <div class="preview-modal-content">
+        <span class="close-preview" id="closePreview">&times;</span>
+        <h4>检测结果视频预览</h4>
+        
+        <div class="row video-container">
+            <div class="col-md-6">
+                <h5>原始视频</h5>
+                <video id="originalVideo" controls class="video-player">
+                    <source id="originalSource" src="" type="video/mp4">
+                    您的浏览器不支持视频标签
+                </video>
+                <div id="originalVideoError" class="alert alert-warning mt-2 d-none">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    无法播放原始视频。请尝试下载后查看。
+                </div>
+                <a id="downloadOriginalVideo" class="btn btn-sm btn-outline-primary mt-2" href="#" download target="_blank">
+                    <i class="fas fa-download me-1"></i> 下载原始视频
+                </a>
+            </div>
+            <div class="col-md-6">
+                <h5>检测结果视频</h5>
+                <video id="resultVideo" controls class="video-player">
+                    <source id="resultSource" src="" type="video/mp4">
+                    您的浏览器不支持视频标签
+                </video>
+                <div id="resultVideoError" class="alert alert-warning mt-2 d-none">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    无法播放处理后视频。请尝试下载后查看。
+                </div>
+                <a id="downloadResultVideo" class="btn btn-sm btn-outline-primary mt-2" href="#" download target="_blank">
+                    <i class="fas fa-download me-1"></i> 下载处理后视频
+                </a>
+            </div>
+        </div>
+        
+        <div id="detectionDetails" class="alert alert-info mt-3">
+            <!-- 检测详情将在JS中动态添加 -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// DOM元素
+const videoFeed = document.getElementById('videoFeed');
+const detectionCanvas = document.getElementById('detectionCanvas');
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+const captureBtn = document.getElementById('captureBtn');
+const detectionTime = document.getElementById('detectionTime');
+const fps = document.getElementById('fps');
+const objectCount = document.getElementById('objectCount');
+const objectList = document.getElementById('objectList');
+const cameraPlaceholder = document.getElementById('cameraPlaceholder');
+const noResultsMsg = document.getElementById('noResultsMsg');
+const detectionAlert = document.getElementById('detectionAlert');
+const alertTime = document.getElementById('alertTime');
+const apiStatus = document.getElementById('apiStatus');
+const statusIndicator = document.getElementById('statusIndicator');
+const statusText = document.getElementById('statusText');
+const debugInfo = document.getElementById('debugInfo');
+const lastSentTime = document.getElementById('lastSentTime');
+const lastReceivedTime = document.getElementById('lastReceivedTime');
+const apiStatusText = document.getElementById('apiStatusText');
+const resultImage = document.getElementById('resultImage');
+
+// 视频预览模态框元素
+const videoPreviewModal = document.getElementById('videoPreviewModal');
+const closePreview = document.getElementById('closePreview');
+const originalVideo = document.getElementById('originalVideo');
+const resultVideo = document.getElementById('resultVideo');
+const originalSource = document.getElementById('originalSource');
+const resultSource = document.getElementById('resultSource');
+const originalVideoError = document.getElementById('originalVideoError');
+const resultVideoError = document.getElementById('resultVideoError');
+const downloadOriginalVideo = document.getElementById('downloadOriginalVideo');
+const downloadResultVideo = document.getElementById('downloadResultVideo');
+const detectionDetails = document.getElementById('detectionDetails');
+
+// 开启调试模式显示调试信息
+const DEBUG = true;
+if (DEBUG) {
+    debugInfo.style.display = 'block';
+}
+
+// 状态变量
+let stream = null;
+let isDetecting = false;
+let lastFrameTime = 0;
+let frameCount = 0;
+let canvasContext = null;
+let canvas = null;
+let animationFrameId = null;
+let lastApiCallStatus = null;
+let framesSent = 0;
+let framesReceived = 0;
+let detectFrameActive = false;
+let startTime = null;
+let currentSessionId = null; // 当前检测会话ID
+let detectedObjectsCount = 0; // 检测到的垃圾总数量
+let detectedObjectsHistory = []; // 存储历史检测记录
+let recordId = null; // 保存的记录ID
+
+// 视频录制变量
+let mediaRecorder = null;
+let recordedChunks = [];
+
+// 关闭预览模态框
+closePreview.addEventListener('click', function() {
+    videoPreviewModal.style.display = 'none';
+    pauseVideos();
+});
+
+// 点击模态框外部关闭
+window.addEventListener('click', function(event) {
+    if (event.target == videoPreviewModal) {
+        videoPreviewModal.style.display = 'none';
+        pauseVideos();
+    }
+});
+
+// 暂停所有视频
+function pauseVideos() {
+    originalVideo.pause();
+    resultVideo.pause();
+}
+
+// 更新API状态UI
+function updateApiStatus(status, message = '') {
+    statusIndicator.className = 'status-indicator';
+    
+    switch(status) {
+        case 'success':
+            statusIndicator.classList.add('status-success');
+            statusText.textContent = '检测成功';
+            break;
+        case 'error':
+            statusIndicator.classList.add('status-error');
+            statusText.textContent = '检测失败';
+            break;
+        case 'pending':
+            statusIndicator.classList.add('status-pending');
+            statusText.textContent = '检测中...';
+            break;
+    }
+    
+    if (message) {
+        apiStatusText.textContent = message;
+    }
+    
+    lastApiCallStatus = status;
+}
+
+// 检查图像格式是否符合服务器期望
+function formatImageData(dataUrl) {
+    // 确保base64图像数据包含前缀
+    if (!dataUrl.startsWith('data:image/')) {
+        return 'data:image/jpeg;base64,' + dataUrl;
+    }
+    return dataUrl;
+}
+
+// 开始检测按钮监听
+startBtn.addEventListener('click', async () => {
+    try {
+        // 请求摄像头权限
+        stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            },
+            audio: false 
+        });
+        
+        // 显示摄像头视频
+        videoFeed.srcObject = stream;
+        videoFeed.style.display = 'block';
+        cameraPlaceholder.style.display = 'none';
+        
+        // 等待视频元素加载完成
+        await new Promise((resolve) => {
+            videoFeed.onloadedmetadata = resolve;
+        });
+        
+        // 更新按钮状态
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        captureBtn.disabled = false;
+        
+        // 准备检测Canvas
+        detectionCanvas.width = videoFeed.clientWidth;
+        detectionCanvas.height = videoFeed.clientHeight;
+        canvasContext = detectionCanvas.getContext('2d');
+        
+        // 创建隐藏的Canvas用于发送图像数据
+        canvas = document.createElement('canvas');
+        document.body.appendChild(canvas);
+        canvas.style.display = 'none';
+        
+        // 开始检测
+        isDetecting = true;
+        startTime = new Date();
+        
+        // 开始录制视频
+        startRecording();
+        
+        // 更新检测时间
+        updateDetectionTime();
+        
+        // 开始检测循环
+        startDetection();
+    } catch (error) {
+        console.error('Error accessing camera:', error);
+        alert('无法访问摄像头，请确保已授予摄像头权限。');
+    }
+});
+
+// 开始录制原始视频
+function startRecording() {
+    recordedChunks = [];
+    try {
+        // 创建MediaRecorder实例用于录制视频
+        const options = { mimeType: 'video/webm; codecs=vp9' };
+        mediaRecorder = new MediaRecorder(stream, options);
+        
+        // 录制数据可用时保存
+        mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) {
+                recordedChunks.push(e.data);
+            }
+        };
+        
+        // 每500ms保存一段录制数据（确保能捕获足够的数据片段）
+        mediaRecorder.start(500);
+        console.log('开始录制原始视频');
+    } catch (err) {
+        console.error('无法启动视频录制:', err);
+        // 尝试使用更通用的格式
+        try {
+            const options = { mimeType: 'video/webm' };
+            mediaRecorder = new MediaRecorder(stream, options);
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) {
+                    recordedChunks.push(e.data);
+                }
+            };
+            mediaRecorder.start(500);
+            console.log('使用备用格式开始录制视频');
+        } catch (err2) {
+            console.error('所有视频录制方式均失败:', err2);
+        }
+    }
+}
+
+// 停止录制并获取视频Blob
+function stopRecording() {
+    return new Promise((resolve, reject) => {
+        if (!mediaRecorder) {
+            reject('没有活跃的录制');
+            return;
+        }
+        
+        // 录制停止后处理视频数据
+        mediaRecorder.onstop = () => {
+            try {
+                const videoBlob = new Blob(recordedChunks, { type: 'video/webm' });
+                console.log(`录制完成，视频大小: ${Math.round(videoBlob.size / 1024)}KB`);
+                resolve(videoBlob);
+            } catch (error) {
+                console.error('处理录制视频失败:', error);
+                reject(error);
+            }
+        };
+        
+        // 停止录制
+        mediaRecorder.stop();
+    });
+}
+
+// 停止检测按钮监听
+stopBtn.addEventListener('click', async () => {
+    if (isDetecting && currentSessionId) {
+        // 保存当前会话的统计数据
+        const sessionData = {
+            session_id: currentSessionId,
+            total_objects: detectedObjectsCount,
+            detection_history: detectedObjectsHistory,
+            duration: ((new Date()) - startTime) / 1000, // 检测时长（秒）
+            timestamp: new Date().toISOString()
+        };
+        
+        console.log('停止检测，会话统计:', sessionData);
+        
+        // 如果检测到了垃圾，发送请求保存视频
+        if (detectedObjectsCount > 0) {
+            // 停止录制并获取视频Blob
+            try {
+                // 显示保存进度
+                const progressAlert = document.createElement('div');
+                progressAlert.className = 'alert alert-info mt-3';
+                progressAlert.innerHTML = `
+                    <i class="fas fa-spinner fa-spin me-2"></i>
+                    正在停止录制并处理视频...
+                `;
+                document.querySelector('.camera-container').appendChild(progressAlert);
+                
+                // 停止录制并获取视频文件
+                const videoBlob = await stopRecording();
+                console.log(`视频录制完成，准备上传 ${Math.round(videoBlob.size / 1024)}KB 的视频`);
+                
+                progressAlert.innerHTML = `
+                    <i class="fas fa-spinner fa-spin me-2"></i>
+                    正在处理检测结果并上传视频...
+                `;
+                
+                // 创建FormData
+                const formData = new FormData();
+                formData.append('session_id', currentSessionId);
+                
+                // 将录制的视频作为真实文件上传
+                formData.append('video', videoBlob, 'original_recording.webm');
+                
+                formData.append('detection_results', JSON.stringify({
+                    objects: detectedObjectsHistory.flatMap(frame => frame.objects),
+                    timestamp: new Date().toISOString()
+                }));
+                formData.append('total_objects', detectedObjectsCount);
+                formData.append('duration', sessionData.duration);
+                formData.append('use_saved_frames', 'true');
+                
+                // 发送请求保存视频 - 使用普通用户API而非管理员API
+                fetch('/api/user/save_recording', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('视频保存成功:', data);
+                        recordId = data.record_id;
+                        
+                        progressAlert.className = 'alert alert-success mt-3';
+                        progressAlert.innerHTML = `
+                            <i class="fas fa-check-circle me-2"></i>
+                            检测结果已保存！
+                            <button class="btn btn-sm btn-primary ms-2" id="previewBtn">
+                                <i class="fas fa-play me-1"></i> 预览视频
+                            </button>
+                        `;
+                        
+                        // 添加预览按钮事件
+                        const previewBtn = progressAlert.querySelector('#previewBtn');
+                        if (previewBtn) {
+                            previewBtn.addEventListener('click', function() {
+                                showVideoPreview(data.record_id, data.original_video_url, data.result_video_url);
+                            });
+                        }
+                    } else {
+                        console.error('保存失败:', data.message);
+                        progressAlert.className = 'alert alert-danger mt-3';
+                        progressAlert.innerHTML = `
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            保存失败: ${data.message || '未知错误'}
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('保存请求失败:', error);
+                    progressAlert.className = 'alert alert-danger mt-3';
+                    progressAlert.innerHTML = `
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        保存失败: ${error.message || '网络错误'}
+                    `;
+                });
+            } catch (error) {
+                console.error('停止录制失败:', error);
+                alert('无法完成视频录制: ' + error);
+            }
+        } else {
+            // 如果没有检测到垃圾，仍然停止录制但不上传
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                try {
+                    mediaRecorder.stop();
+                    console.log('已停止录制，但未检测到垃圾，不保存视频');
+                } catch (e) {
+                    console.error('停止录制错误:', e);
+                }
+            }
+        }
+    }
+    
+    stopDetection();
+    stopCameraStream();
+});
+
+// 拍照保存按钮监听
+captureBtn.addEventListener('click', () => {
+    if (!stream) return;
+    
+    try {
+        // 创建隐藏的Canvas
+        const canvasTemp = document.createElement('canvas');
+        canvasTemp.width = videoFeed.videoWidth;
+        canvasTemp.height = videoFeed.videoHeight;
+        const ctx = canvasTemp.getContext('2d');
+        
+        // 绘制当前帧
+        ctx.drawImage(videoFeed, 0, 0, canvasTemp.width, canvasTemp.height);
+        
+        // 将图像转为base64
+        const imageData = canvasTemp.toDataURL('image/jpeg');
+        
+        // 将图像发送到服务器
+        fetch('/api/save_capture', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ image: imageData })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('图像已保存！');
+            } else {
+                alert('保存失败：' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('保存失败，请重试！');
+        });
+    } catch (error) {
+        console.error('截图失败:', error);
+        alert('截图失败: ' + error.message);
+    }
+});
+
+// 开始检测循环
+function startDetection() {
+    if (!stream || !canvas) return;
+    
+    // 创建新的检测会话ID
+    currentSessionId = 'session_' + new Date().getTime();
+    console.log('创建新的检测会话:', currentSessionId);
+    
+    // 重置检测统计
+    detectedObjectsCount = 0;
+    detectedObjectsHistory = [];
+    recordId = null;
+    
+    // 确保视频元素加载完成
+    if (videoFeed.videoWidth === 0 || videoFeed.videoHeight === 0) {
+        console.log('等待视频元素加载完成...');
+        setTimeout(startDetection, 100);
+        return;
+    }
+    
+    const context = canvas.getContext('2d');
+    canvas.width = videoFeed.videoWidth;
+    canvas.height = videoFeed.videoHeight;
+    
+    console.log(`Canvas size: ${canvas.width}x${canvas.height}, Video size: ${videoFeed.videoWidth}x${videoFeed.videoHeight}`);
+    
+    // 更新对象计数和检测时间
+    objectCount.textContent = '0个';
+    
+    // 每帧检测之间的延迟 (ms)
+    const DETECTION_INTERVAL = 500; // 调整为更高的值以减少API调用频率
+    let lastDetectionTimestamp = 0;
+    detectFrameActive = false;
+    
+    function detectFrame() {
+        if (!isDetecting) return;
+        
+        // 取消上一个动画帧，避免重复
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+        }
+        
+        try {
+            const now = performance.now();
+            
+            // 限制发送频率以减轻服务器负担
+            // 如果当前有活跃的检测请求，或者距离上次检测时间过短，则跳过
+            if (detectFrameActive || now - lastDetectionTimestamp < DETECTION_INTERVAL) {
+                animationFrameId = requestAnimationFrame(detectFrame);
+                return;
+            }
+            
+            // 绘制当前帧到隐藏的Canvas
+            context.drawImage(videoFeed, 0, 0, canvas.width, canvas.height);
+            
+            // 将图像转为base64，并保持与save_capture相同的格式
+            const imageData = canvas.toDataURL('image/jpeg', 0.75);
+            
+            // 计算帧率
+            frameCount++;
+            if (now - lastFrameTime >= 1000) {
+                fps.textContent = frameCount + ' FPS';
+                frameCount = 0;
+                lastFrameTime = now;
+            }
+            
+            // 发送帧到服务器进行检测
+            console.log(`发送第 ${++framesSent} 帧数据进行检测，图像大小: ${Math.round(imageData.length / 1024)}KB`);
+            lastSentTime.textContent = new Date().toLocaleTimeString();
+            lastDetectionTimestamp = now;
+            
+            // 标记当前有活跃的检测请求
+            detectFrameActive = true;
+            updateApiStatus('pending', '正在处理图像...');
+            
+            // 使用API接口进行检测
+            fetch('/api/detect/camera_frame', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    image: imageData,
+                    confidence: 0.5,
+                    save_frames: true, // 保存帧以便后续处理
+                    session_id: currentSessionId // 传递会话ID
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                detectFrameActive = false; // 标记检测请求已完成
+                lastReceivedTime.textContent = new Date().toLocaleTimeString();
+                framesReceived++;
+                
+                if (data.success) {
+                    console.log('检测成功:', data);
+                    updateApiStatus('success', `检测成功，检测到 ${data.objects ? data.objects.length : 0} 个对象`);
+                    
+                    // 处理检测结果
+                    handleDetectionResult(data);
+                    
+                    // 如果返回了结果图像，显示它
+                    if (data.result_image) {
+                        resultImage.src = data.result_image;
+                        resultImage.style.display = 'block';
+                    }
+                } else {
+                    console.error('检测失败:', data.message);
+                    updateApiStatus('error', `检测失败: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                detectFrameActive = false;
+                console.error('API请求错误:', error);
+                updateApiStatus('error', `API错误: ${error.message}`);
+            });
+            
+            // 继续下一帧
+            animationFrameId = requestAnimationFrame(detectFrame);
+        } catch (error) {
+            detectFrameActive = false;
+            console.error('处理帧错误:', error);
+            updateApiStatus('error', `处理错误: ${error.message}`);
+            animationFrameId = requestAnimationFrame(detectFrame);
+        }
+    }
+    
+    // 开始检测循环
+    detectFrame();
+}
+
+// 处理检测结果
+function handleDetectionResult(data) {
+    if (!data) {
+        console.error('收到空检测结果');
+        return;
+    }
+    
+    // 更新检测时间
+    updateDetectionTime();
+    
+    // 对象统计
+    const objects = data.objects || [];
+    const objectCounts = {};
+    let currentFrameObjectCount = 0;
+    
+    console.log(`收到检测结果，包含 ${objects.length} 个对象`);
+    
+    // 如果有检测结果
+    if (objects.length > 0) {
+        // 隐藏无结果消息
+        noResultsMsg.style.display = 'none';
+        
+        // 统计每种类别的数量
+        objects.forEach(obj => {
+            objectCounts[obj.label] = (objectCounts[obj.label] || 0) + 1;
+            currentFrameObjectCount++;
+            
+            // 增加总计数
+            detectedObjectsCount++;
+        });
+        
+        // 记录此帧的检测结果
+        detectedObjectsHistory.push({
+            timestamp: new Date().toISOString(),
+            objects: objects.map(obj => ({
+                label: obj.label,
+                confidence: obj.confidence
+            })),
+            count: currentFrameObjectCount
+        });
+        
+        // 显示警报
+        detectionAlert.classList.add('active');
+        alertTime.textContent = new Date().toLocaleTimeString();
+    } else {
+        // 显示无结果消息
+        if (objectList.childElementCount <= 1) {
+            noResultsMsg.style.display = 'block';
+        }
+        
+        // 隐藏警报
+        detectionAlert.classList.remove('active');
+    }
+    
+    // 更新当前帧的目标数量
+    objectCount.textContent = currentFrameObjectCount + '个';
+    // 在调试信息中显示累计检测到的对象
+    apiStatusText.textContent = `总计检测到 ${detectedObjectsCount} 个垃圾对象`;
+    
+    // 更新检测结果列表
+    objectList.innerHTML = '';
+    if (currentFrameObjectCount === 0) {
+        // 如果没有检测到对象，显示提示消息
+        objectList.appendChild(noResultsMsg);
+    } else {
+        // 添加累计统计
+        const totalItem = document.createElement('div');
+        totalItem.className = 'object-item fw-bold';
+        totalItem.innerHTML = `
+            <span class="badge bg-success me-2">${detectedObjectsCount}</span>
+            累计检测到的垃圾数量
+        `;
+        objectList.appendChild(totalItem);
+        
+        // 添加当前帧类别统计
+        for (const [category, count] of Object.entries(objectCounts)) {
+            const item = document.createElement('div');
+            item.className = 'object-item';
+            item.innerHTML = `
+                <span class="badge bg-primary me-2">${count}</span>
+                ${category}
+            `;
+            objectList.appendChild(item);
+        }
+    }
+    
+    // 绘制检测框
+    if (data.boxes && data.boxes.length > 0 && canvasContext) {
+        // 调整Canvas尺寸以匹配视频元素
+        if (detectionCanvas.width !== videoFeed.clientWidth || 
+            detectionCanvas.height !== videoFeed.clientHeight) {
+            detectionCanvas.width = videoFeed.clientWidth;
+            detectionCanvas.height = videoFeed.clientHeight;
+        }
+        
+        // 清除之前的绘制
+        canvasContext.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
+        
+        // 计算尺寸比例（视频可能被缩放显示）
+        const scaleX = detectionCanvas.width / videoFeed.videoWidth;
+        const scaleY = detectionCanvas.height / videoFeed.videoHeight;
+        
+        // 绘制每个检测框
+        data.boxes.forEach(box => {
+            const x = box.x * scaleX;
+            const y = box.y * scaleY;
+            const width = box.width * scaleX;
+            const height = box.height * scaleY;
+            
+            // 绘制边框
+            canvasContext.strokeStyle = 'rgba(255, 0, 0, 0.8)';
+            canvasContext.lineWidth = 2;
+            canvasContext.strokeRect(x, y, width, height);
+            
+            // 绘制标签背景
+            canvasContext.fillStyle = 'rgba(255, 0, 0, 0.7)';
+            canvasContext.fillRect(x, y - 20, width, 20);
+            
+            // 绘制标签文字
+            canvasContext.fillStyle = 'white';
+            canvasContext.font = '14px Arial';
+            canvasContext.fillText(box.category, x + 5, y - 5);
+        });
+    } else if (canvasContext) {
+        // 如果没有检测到对象，清除画布
+        canvasContext.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
+    }
+}
+
+// 更新检测时间
+function updateDetectionTime() {
+    detectionTime.textContent = new Date().toLocaleString('zh-CN');
+}
+
+// 停止检测
+function stopDetection() {
+    if (!isDetecting) return;
+    
+    isDetecting = false;
+    detectFrameActive = false;
+    
+    // 取消动画帧
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+    
+    // 清除Canvas
+    if (canvasContext) {
+        canvasContext.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
+    }
+    
+    // 隐藏结果图像
+    resultImage.style.display = 'none';
+    
+    // 隐藏警报
+    detectionAlert.classList.remove('active');
+    
+    // 重置显示
+    objectCount.textContent = '-';
+    fps.textContent = '-';
+    
+    // 显示无结果消息
+    objectList.innerHTML = '';
+    objectList.appendChild(noResultsMsg);
+    
+    // 更新API状态
+    updateApiStatus('pending', '已停止检测');
+}
+
+// 停止并关闭摄像头
+function stopCameraStream() {
+    if (stream) {
+        stream.getTracks().forEach(track => {
+            track.stop();
+        });
+        stream = null;
+        videoFeed.srcObject = null;
+        videoFeed.style.display = 'none';
+        cameraPlaceholder.style.display = 'flex';
+    }
+    
+    // 重置按钮状态
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    captureBtn.disabled = true;
+}
+
+// 清理资源
+function cleanup() {
+    // 停止检测
+    stopDetection();
+    
+    // 停止摄像头
+    stopCameraStream();
+    
+    // 移除canvas
+    if (canvas && canvas.parentNode) {
+        canvas.parentNode.removeChild(canvas);
+    }
+}
+
+// 监听页面关闭事件
+window.addEventListener('beforeunload', () => {
+    cleanup();
+});
+
+// 监听页面可见性变化，当页面被切换到后台时停止摄像头
+document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'hidden') {
+        // 如果页面切换到后台，停止检测但不关闭摄像头
+        if (isDetecting) {
+            stopDetection();
+        }
+    }
+});
+
+// 显示视频预览
+function showVideoPreview(recordId, originalUrl, resultUrl) {
+    // 重置错误提示
+    originalVideoError.classList.add('d-none');
+    resultVideoError.classList.add('d-none');
+    
+    // 确保URL格式正确
+    const baseUrl = window.location.origin;
+    
+    // 处理原始视频URL
+    let origUrl = originalUrl;
+    if (origUrl && !origUrl.startsWith('http') && !origUrl.startsWith('/')) {
+        origUrl = '/' + origUrl;
+    }
+    if (origUrl && !origUrl.startsWith('http')) {
+        origUrl = baseUrl + origUrl;
+    }
+    
+    // 处理结果视频URL
+    let resUrl = resultUrl;
+    if (resUrl && !resUrl.startsWith('http') && !resUrl.startsWith('/')) {
+        resUrl = '/' + resUrl;
+    }
+    if (resUrl && !resUrl.startsWith('http')) {
+        resUrl = baseUrl + resUrl;
+    }
+    
+    console.log('原始视频URL:', origUrl);
+    console.log('结果视频URL:', resUrl);
+    
+    // 设置下载链接
+    downloadOriginalVideo.href = origUrl;
+    downloadResultVideo.href = resUrl;
+    
+    // 确定视频MIME类型
+    let originalMimeType = 'video/mp4';
+    let resultMimeType = 'video/mp4';
+    
+    // 根据文件扩展名判断MIME类型
+    if (origUrl.toLowerCase().endsWith('.webm')) {
+        originalMimeType = 'video/webm';
+    }
+    if (resUrl.toLowerCase().endsWith('.webm')) {
+        resultMimeType = 'video/webm';
+    }
+    
+    // 设置视频源及MIME类型
+    originalSource.src = origUrl;
+    originalSource.type = originalMimeType;
+    resultSource.src = resUrl;
+    resultSource.type = resultMimeType;
+    
+    // 添加错误处理
+    originalVideo.onerror = () => {
+        console.error('原始视频加载失败:', origUrl);
+        originalVideoError.classList.remove('d-none');
+        
+        // 尝试使用备用播放方式 - 创建Blob URL
+        fetch(origUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const blobUrl = URL.createObjectURL(blob);
+                console.log('为原始视频创建Blob URL:', blobUrl);
+                originalSource.src = blobUrl;
+                originalVideo.load();
+            })
+            .catch(error => {
+                console.error('无法使用Blob URL播放原始视频:', error);
+            });
+    };
+    
+    resultVideo.onerror = () => {
+        console.error('结果视频加载失败:', resUrl);
+        resultVideoError.classList.remove('d-none');
+        
+        // 尝试使用备用播放方式 - 创建Blob URL
+        fetch(resUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const blobUrl = URL.createObjectURL(blob);
+                console.log('为结果视频创建Blob URL:', blobUrl);
+                resultSource.src = blobUrl;
+                resultVideo.load();
+            })
+            .catch(error => {
+                console.error('无法使用Blob URL播放结果视频:', error);
+            });
+    };
+    
+    // 重新加载视频
+    originalVideo.load();
+    resultVideo.load();
+    
+    // 获取检测记录详情
+    fetch(`/admin/api/detection_records?record_id=${recordId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.records && data.records.length > 0) {
+                const record = data.records[0];
+                
+                // 更新检测详情
+                detectionDetails.innerHTML = `
+                    <div>
+                        <h6>检测详情</h6>
+                        <p><strong>检测时间:</strong> ${record.timestamp || '未知'}</p>
+                        <p><strong>检测到的垃圾数量:</strong> ${record.total_objects || 0} 个</p>
+                        <p><strong>检测耗时:</strong> ${record.duration ? record.duration.toFixed(2) + '秒' : '未知'}</p>
+                        <p><strong>状态:</strong> ${record.is_cleaned ? '已清理' : '未清理'}</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('获取检测记录详情失败:', error);
+            detectionDetails.innerHTML = `
+                <div>
+                    <p>无法获取检测记录详情: ${error.message || '未知错误'}</p>
+                </div>
+            `;
+        });
+    
+    // 显示模态框
+    videoPreviewModal.style.display = 'block';
+}
+</script>
+{% endblock %} 

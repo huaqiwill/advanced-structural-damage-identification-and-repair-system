@@ -1,0 +1,160 @@
+{% extends "app/base.html" %}
+
+{% block title %}检测记录 - 结构损伤检测{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-bar {
+        position: sticky;
+        top: 0;
+        background-color: #fff;
+        padding: 12px 0;
+        z-index: 100;
+    }
+    
+    .record-item {
+        border-bottom: 1px solid #eee;
+        padding: 16px 0;
+    }
+    
+    .record-item:last-child {
+        border-bottom: none;
+    }
+    
+    .record-type {
+        font-size: 14px;
+        color: #666;
+    }
+    
+    .record-time {
+        font-size: 12px;
+        color: #999;
+    }
+    
+    .damage-tag {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+    }
+    
+    .damage-tag.high {
+        background-color: #fee2e2;
+        color: #dc2626;
+    }
+    
+    .damage-tag.medium {
+        background-color: #fef3c7;
+        color: #d97706;
+    }
+    
+    .damage-tag.low {
+        background-color: #dcfce7;
+        color: #16a34a;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 40px 0;
+        color: #666;
+    }
+    
+    .empty-state i {
+        font-size: 48px;
+        margin-bottom: 16px;
+        color: #ddd;
+    }
+</style>
+{% endblock %}
+
+{% block app_content %}
+<!-- 筛选栏 -->
+<div class="filter-bar">
+    <div class="row g-2">
+        <div class="col-6">
+            <select class="form-select mobile-form-control">
+                <option value="">所有类型</option>
+                <option value="image">图片检测</option>
+                <option value="realtime">实时检测</option>
+            </select>
+        </div>
+        <div class="col-6">
+            <select class="form-select mobile-form-control">
+                <option value="">所有状态</option>
+                <option value="damage">有损伤</option>
+                <option value="normal">正常</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- 记录列表 -->
+<div class="mt-3">
+    {% if records %}
+    {% for record in records %}
+    <div class="record-item">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="record-type">
+                <i class="fas fa-{{ 'image' if record.type == 'image' else 'camera' }} me-2"></i>
+                {{ '图片检测' if record.type == 'image' else '实时检测' }}
+            </span>
+            <span class="record-time">{{ record.time }}</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <span class="damage-tag {{ record.damage_level }}">
+                    {{ record.damage_text }}
+                </span>
+            </div>
+            <a href="{{ url_for('app_record_detail', id=record.id) }}" class="btn btn-sm btn-outline-theme">
+                查看详情
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-clipboard-list"></i>
+        <p>暂无检测记录</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- 加载更多 -->
+{% if has_more %}
+<div class="text-center mt-4">
+    <button class="btn btn-theme" id="loadMore">
+        加载更多
+    </button>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 筛选功能
+    const typeSelect = document.querySelector('select:first-child');
+    const statusSelect = document.querySelector('select:last-child');
+    
+    function applyFilters() {
+        const type = typeSelect.value;
+        const status = statusSelect.value;
+        // 这里添加筛选逻辑
+        // ...
+    }
+    
+    typeSelect.addEventListener('change', applyFilters);
+    statusSelect.addEventListener('change', applyFilters);
+    
+    // 加载更多
+    const loadMoreBtn = document.getElementById('loadMore');
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', function() {
+            // 这里添加加载更多逻辑
+            // ...
+        });
+    }
+});
+</script>
+{% endblock %} 

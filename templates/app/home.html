@@ -1,0 +1,71 @@
+{% extends "app/base.html" %}
+
+{% block title %}移动端首页 - 结构损伤检测{% endblock %}
+
+{% block app_content %}
+<!-- 欢迎卡片 -->
+<div class="mobile-card">
+    <h2 class="text-center mb-3">欢迎使用结构损伤检测</h2>
+    <p class="text-muted text-center">随时随地检测结构损伤，保护设备安全</p>
+</div>
+
+<!-- 快速检测入口 -->
+<div class="mobile-card">
+    <h4 class="mb-3">快速检测</h4>
+    <div class="row g-3">
+        <div class="col-6">
+            <a href="{{ url_for('app_image_detection') }}" class="mobile-btn btn-theme">
+                <i class="fas fa-image me-2"></i>图片检测
+            </a>
+        </div>
+        <div class="col-6">
+            <a href="{{ url_for('app_realtime_detection') }}" class="mobile-btn btn-theme">
+                <i class="fas fa-camera me-2"></i>实时检测
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 最近检测记录 -->
+<div class="mobile-card">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">最近检测</h4>
+        <a href="{{ url_for('app_records') }}" class="text-theme">查看全部</a>
+    </div>
+    {% if recent_records %}
+    <div class="list-group">
+        {% for record in recent_records %}
+        <div class="list-group-item">
+            <div class="d-flex justify-content-between">
+                <span>{{ record.type }}</span>
+                <small class="text-muted">{{ record.time }}</small>
+            </div>
+            <div class="mt-2">
+                <span class="badge bg-{{ 'danger' if record.has_damage else 'success' }}">
+                    {{ '有损伤' if record.has_damage else '正常' }}
+                </span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-muted text-center">暂无检测记录</p>
+    {% endif %}
+</div>
+
+<!-- 科普知识 -->
+<div class="mobile-card">
+    <h4 class="mb-3">结构损伤知识</h4>
+    <div class="list-group">
+        <a href="{{ url_for('app_scientific') }}" class="list-group-item list-group-item-action">
+            <i class="fas fa-book me-2"></i>结构损伤类型介绍
+        </a>
+        <a href="{{ url_for('app_scientific') }}" class="list-group-item list-group-item-action">
+            <i class="fas fa-exclamation-triangle me-2"></i>常见损伤预警
+        </a>
+        <a href="{{ url_for('app_scientific') }}" class="list-group-item list-group-item-action">
+            <i class="fas fa-tools me-2"></i>维护保养指南
+        </a>
+    </div>
+</div>
+{% endblock %} 

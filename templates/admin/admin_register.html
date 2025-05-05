@@ -1,0 +1,119 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}管理员注册 - 结构损伤的高级识别和绘图{% endblock %}
+
+{% block extra_css %}
+<style>
+    .register-container {
+        max-width: 500px;
+        margin: 80px auto 2rem auto;
+        padding: 2rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        background-color: #f8f9fa;
+    }
+    .register-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .register-header i {
+        font-size: 3rem;
+        color: var(--theme-color);
+        margin-bottom: 1rem;
+    }
+    .form-floating {
+        margin-bottom: 1rem;
+    }
+    .btn-register {
+        width: 100%;
+        background-color: var(--theme-color);
+        border-color: var(--theme-color);
+    }
+    .btn-register:hover {
+        background-color: var(--theme-color-dark);
+        border-color: var(--theme-color-dark);
+    }
+    .admin-badge {
+        background-color: #dc3545;
+        color: white;
+        font-size: 0.8rem;
+        padding: 3px 8px;
+        border-radius: 4px;
+        display: inline-block;
+        margin-left: 5px;
+    }
+    .password-requirements {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-top: 0.5rem;
+    }
+    .password-requirements ul {
+        padding-left: 1.5rem;
+        margin-bottom: 0;
+    }
+    .admin-key-section {
+        background-color: #f8f9fa;
+        border-left: 4px solid var(--theme-color);
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="register-container">
+    <div class="register-header">
+        <i class="fas fa-user-plus"></i>
+        <h2>管理员注册 <span class="admin-badge">ADMIN</span></h2>
+        <p class="text-muted">创建新的管理员账号</p>
+    </div>
+    
+    <div class="admin-key-section">
+        <h5><i class="fas fa-key me-2"></i>管理员注册验证</h5>
+        <p class="mb-0">为确保系统安全，请联系超级管理员获取授权码进行注册</p>
+    </div>
+    
+    <form method="POST" action="{{ url_for('admin.admin_register') }}">
+        <div class="form-floating">
+            <input type="text" class="form-control" id="admin_key" name="admin_key" placeholder="管理员授权码" required>
+            <label for="admin_key">管理员授权码</label>
+        </div>
+        
+        <div class="form-floating">
+            <input type="text" class="form-control" id="username" name="username" placeholder="用户名" required>
+            <label for="username">用户名</label>
+            <div class="form-text">用户名将用于系统登录，创建后不可更改</div>
+        </div>
+        
+        <div class="form-floating">
+            <input type="password" class="form-control" id="password" name="password" placeholder="密码" required>
+            <label for="password">密码</label>
+        </div>
+        
+        <div class="form-floating mb-3">
+            <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="确认密码" required>
+            <label for="confirm_password">确认密码</label>
+        </div>
+        
+        <div class="password-requirements mb-3">
+            <strong>密码要求：</strong>
+            <ul>
+                <li>至少8个字符</li>
+                <li>包含数字和字母</li>
+                <li>区分大小写</li>
+            </ul>
+        </div>
+        
+        <button type="submit" class="btn btn-primary btn-register">
+            <i class="fas fa-user-plus me-2"></i>注册账号
+        </button>
+    </form>
+    
+    <div class="text-center mt-3">
+        <a href="{{ url_for('admin.admin_login') }}" class="text-decoration-none">
+            <i class="fas fa-arrow-left me-1"></i>返回管理员登录
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}结构损伤的高级识别和绘图{% endblock %}</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <link href="/static/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="/static/css/font-awesome.css" rel="stylesheet">
+    <style>
+        :root {
+            --theme-color: #0d6efd;
+            --theme-color-dark: #0b5ed7;
+            --theme-color-light: #3d8bfd;
+        }
+        .navbar {
+            background-color: var(--theme-color);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .navbar-brand {
+            color: #fff !important;
+            font-weight: 600;
+        }
+        .navbar-nav .nav-link {
+            color: rgba(255, 255, 255, 0.9) !important;
+            transition: all 0.3s ease;
+        }
+        .navbar-nav .nav-link:hover {
+            color: #fff !important;
+            transform: translateY(-2px);
+        }
+        .btn-theme {
+            background-color: var(--theme-color);
+            border-color: var(--theme-color);
+            color: #fff;
+        }
+        .btn-theme:hover {
+            background-color: var(--theme-color-dark);
+            border-color: var(--theme-color-dark);
+            color: #fff;
+        }
+        .text-theme {
+            color: var(--theme-color) !important;
+        }
+        .border-theme {
+            border-color: var(--theme-color) !important;
+        }
+        .bg-theme {
+            background-color: var(--theme-color) !important;
+        }
+        .flash-messages {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .main-content {
+            margin-top: 80px;
+            min-height: calc(100vh - 160px);
+        }
+        .footer {
+            height: 60px;
+            background-color: #f8f9fa;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-recycle me-2"></i>结构损伤的高级识别和绘图
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" title="切换导航菜单">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">
+                            <i class="fas fa-home me-1"></i>首页
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/scientific">
+                            <i class="fas fa-book-open me-1"></i>科普知识
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/detection_records">
+                            <i class="fas fa-history me-1"></i>检测记录
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/alert">
+                            <i class="fas fa-bell me-1"></i>水面警报
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    {% if 'user_id' in session %}
+                    <li class="nav-item">
+                        <span class="nav-link" id="userDisplay">
+                            <i class="fas fa-user me-1"></i><span id="currentUsername">欢迎您</span>
+                        </span>
+                    </li>
+                    <li class="nav-item">
+                        <span class="nav-link">
+                            <i class="fas fa-clock me-1"></i>工作时长：<span id="workTime">00:00:00</span>
+                        </span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/logout" id="logoutBtn">
+                            <i class="fas fa-sign-out-alt"></i> 退出
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/login">登录</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/register">注册</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash消息 -->
+    <div class="flash-messages">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" title="关闭提示"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- 主要内容 -->
+    <div class="main-content">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="footer mt-auto py-3">
+        <div class="container text-center">
+            <span class="text-muted">© 2025 结构损伤的高级识别和绘图</span>
+        </div>
+    </footer>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="/static/js/bootstrap.bundle.js"></script>
+    <script src="/static/js/Chart.js"></script>
+    <script src="/static/js/ckeditor.js"></script>
+    <script src="/static/js/jquery3.6.0.js"></script>
+    <script src="/static/js/socket.io.js"></script>
+    <script>
+        // 自动隐藏Flash消息
+        setTimeout(function() {
+            $('.alert').alert('close');
+        }, 5000);
+
+        // 从localStorage中获取用户名并显示
+        document.addEventListener('DOMContentLoaded', function() {
+            // 优先使用session中的用户名（如果有的话）
+            {% if 'username' in session %}
+                const sessionUsername = "{{ session['username'] }}";
+                const usernameElement = document.getElementById('currentUsername');
+                if (usernameElement) {
+                    usernameElement.textContent = sessionUsername;
+                }
+            {% else %}
+                // 否则尝试从localStorage获取
+                const storedUsername = localStorage.getItem('currentUsername');
+                const usernameElement = document.getElementById('currentUsername');
+                
+                if (storedUsername && usernameElement) {
+                    usernameElement.textContent = storedUsername;
+                }
+            {% endif %}
+            
+            // 为退出按钮添加清除localStorage的功能
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function() {
+                    localStorage.removeItem('currentUsername');
+                    localStorage.removeItem('isLoggedIn');
+                    localStorage.removeItem('loginTime');
+                });
+            }
+        });
+
+        {% if 'user_id' in session %}
+        // 工作时长计时器
+        (function() {
+            var startTime = {{ session.get('login_time', 'Math.floor(Date.now() / 1000)') | safe }};
+            
+            function updateWorkTime() {
+                var now = Math.floor(Date.now() / 1000);
+                var duration = now - startTime;
+                
+                var hours = Math.floor(duration / 3600);
+                var minutes = Math.floor((duration % 3600) / 60);
+                var seconds = duration % 60;
+                
+                var timeStr = [
+                    hours.toString().padStart(2, '0'),
+                    minutes.toString().padStart(2, '0'),
+                    seconds.toString().padStart(2, '0')
+                ].join(':');
+                
+                document.getElementById('workTime').textContent = timeStr;
+            }
+            
+            // 立即更新一次
+            updateWorkTime();
+            
+            // 每秒更新一次
+            setInterval(updateWorkTime, 1000);
+        })();
+        {% endif %}
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html> 

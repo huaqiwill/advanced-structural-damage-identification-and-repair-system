@@ -1,0 +1,468 @@
+{% extends "base.html" %}
+
+{% block title %}图片检测 - 结构损伤的高级识别和绘图{% endblock %}
+
+{% block extra_css %}
+<style>
+    .main-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    .upload-container {
+        border: 2px dashed var(--theme-color);
+        border-radius: 15px;
+        padding: 3rem;
+        text-align: center;
+        background-color: #f8f9fa;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 2rem;
+    }
+    .upload-container:hover {
+        border-color: var(--theme-color-dark);
+        background-color: #f3f0f7;
+        transform: translateY(-2px);
+    }
+    .upload-icon {
+        font-size: 4rem;
+        color: var(--theme-color);
+        margin-bottom: 1.5rem;
+        transition: all 0.3s ease;
+    }
+    .upload-container:hover .upload-icon {
+        transform: scale(1.1);
+    }
+    .preview-container {
+        background-color: #fff;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        display: none;
+    }
+    .preview-image {
+        max-width: 100%;
+        height: auto;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .options-card {
+        background-color: #fff;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .confidence-slider {
+        width: 100%;
+        margin: 1rem 0;
+    }
+    .result-container {
+        background-color: #fff;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-top: 2rem;
+        display: none;
+    }
+    .stats-card {
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+    }
+    .stats-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    .object-list {
+        max-height: 300px;
+        overflow-y: auto;
+        padding: 1rem;
+        background-color: #f8f9fa;
+        border-radius: 10px;
+    }
+    .object-item {
+        padding: 0.8rem;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.2s ease;
+    }
+    .object-item:hover {
+        background-color: #e9ecef;
+        border-radius: 5px;
+    }
+    .object-item:last-child {
+        border-bottom: none;
+    }
+    .confidence-badge {
+        font-size: 0.9rem;
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+        background-color: var(--theme-color);
+    }
+    .loading-spinner {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 1000;
+        display: none;
+    }
+    .spinner-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(3px);
+        z-index: 999;
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    .pulse {
+        animation: pulse 2s infinite;
+    }
+    .coordinates-badge {
+        font-size: 0.8rem;
+        color: #6c757d;
+        cursor: pointer;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 2px 6px;
+        background-color: #f8f9fa;
+        transition: all 0.2s ease;
+    }
+    .coordinates-badge:hover {
+        background-color: #e9ecef;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .coordinates-tooltip {
+        display: none;
+        position: absolute;
+        background-color: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 8px 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        z-index: 100;
+        font-size: 0.8rem;
+        max-width: 250px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="text-center mb-4">
+        <h2 class="display-5 fw-bold text-theme">图片检测</h2>
+        <p class="lead text-muted">上传图片，快速识别水面垃圾类型</p>
+    </div>
+    
+    <!-- 上传区域 -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <form id="upload-form" enctype="multipart/form-data">
+                <div class="upload-container" onclick="document.getElementById('file-input').click()">
+                    <i class="fas fa-cloud-upload-alt upload-icon pulse"></i>
+                    <h4 class="mb-3">点击或拖拽图片到此处</h4>
+                    <p class="text-muted mb-0">支持 JPG、PNG、JPEG 格式，最大 16MB</p>
+                    <input type="file" id="file-input" name="image" accept=".jpg,.jpeg,.png" 
+                           class="d-none" onchange="handleFileSelect(this)">
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 检测选项 -->
+    <!-- 
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="options-card">
+                <h5 class="card-title mb-4">检测选项</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="confidence" class="form-label">置信度阈值</label>
+                            <input type="range" class="form-range confidence-slider" id="confidence" 
+                                   min="0" max="100" value="50">
+                            <div class="text-center" id="confidence-value">50%</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="show-labels" checked>
+                            <label class="form-check-label" for="show-labels">
+                                显示标签
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="show-confidence" checked>
+                            <label class="form-check-label" for="show-confidence">
+                                显示置信度
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    -->
+
+    <!-- 预览区域 -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div id="preview-container" class="preview-container">
+                <img id="preview-image" class="preview-image" src="" alt="预览图片">
+            </div>
+        </div>
+    </div>
+
+    <!-- 检测结果 -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div id="result-container" class="result-container">
+                <h5 class="card-title mb-4">检测结果</h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="stats-card text-center">
+                            <h6 class="mb-2">检测时间</h6>
+                            <p id="detection-timestamp" class="mb-0 fs-5">-</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stats-card text-center">
+                            <h6 class="mb-2">处理时长</h6>
+                            <p id="detection-time" class="mb-0 fs-5">0.00s</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stats-card text-center">
+                            <h6 class="mb-2">目标数量</h6>
+                            <p id="object-count" class="mb-0 fs-5">0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="object-list mt-4" id="object-list">
+                    <!-- 检测到的目标列表将在这里动态添加 -->
+                </div>
+                <div class="text-center mt-4">
+                    <button class="btn btn-theme" onclick="downloadResult()">
+                        <i class="fas fa-download me-2"></i>下载结果
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载动画 -->
+    <div id="loading-spinner" class="loading-spinner">
+        <div class="spinner-backdrop"></div>
+        <div class="d-flex flex-column align-items-center">
+            <div class="spinner-border text-theme mb-3" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+            <h5 class="text-white">正在处理...</h5>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 更新置信度显示
+/* 注释掉检测选项相关代码
+document.getElementById('confidence').addEventListener('input', function(e) {
+    document.getElementById('confidence-value').textContent = e.target.value + '%';
+});
+*/
+
+// 处理文件选择
+function handleFileSelect(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        
+        // 检查文件类型
+        const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+        if (!validTypes.includes(file.type)) {
+            alert('请选择 JPG 或 PNG 格式的图片！');
+            return;
+        }
+        
+        // 检查文件大小
+        if (file.size > 16 * 1024 * 1024) {
+            alert('图片大小不能超过 16MB！');
+            return;
+        }
+        
+        // 显示预览
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('preview-image').src = e.target.result;
+            document.getElementById('preview-container').style.display = 'block';
+            document.getElementById('result-container').style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+        
+        // 自动开始检测
+        uploadImage(file);
+    }
+}
+
+// 处理拖放
+const uploadContainer = document.querySelector('.upload-container');
+
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    uploadContainer.addEventListener(eventName, preventDefaults, false);
+    document.body.addEventListener(eventName, preventDefaults, false);
+});
+
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+['dragenter', 'dragover'].forEach(eventName => {
+    uploadContainer.addEventListener(eventName, highlight, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+    uploadContainer.addEventListener(eventName, unhighlight, false);
+});
+
+function highlight(e) {
+    uploadContainer.classList.add('border-primary');
+}
+
+function unhighlight(e) {
+    uploadContainer.classList.remove('border-primary');
+}
+
+uploadContainer.addEventListener('drop', handleDrop, false);
+
+function handleDrop(e) {
+    const dt = e.dataTransfer;
+    const file = dt.files[0];
+    document.getElementById('file-input').files = dt.files;
+    handleFileSelect(document.getElementById('file-input'));
+}
+
+// 上传图片
+function uploadImage(file) {
+    const formData = new FormData();
+    formData.append('image', file);
+    /* 注释掉检测选项相关代码
+    formData.append('confidence', document.getElementById('confidence').value / 100);
+    formData.append('show_labels', document.getElementById('show-labels').checked);
+    formData.append('show_confidence', document.getElementById('show-confidence').checked);
+    */
+    
+    // 显示加载动画
+    document.getElementById('loading-spinner').style.display = 'block';
+    
+    fetch('/api/detect/image', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayResults(data);
+        } else {
+            alert('检测失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('检测失败，请重试！');
+    })
+    .finally(() => {
+        document.getElementById('loading-spinner').style.display = 'none';
+    });
+}
+
+// 显示检测结果
+function displayResults(data) {
+    // 显示检测时间
+    const timestamp = new Date(data.timestamp);
+    document.getElementById('detection-timestamp').textContent = 
+        timestamp.toLocaleString('zh-CN');
+    
+    // 显示处理时长
+    document.getElementById('detection-time').textContent = 
+        data.detection_time.toFixed(2) + 's';
+    
+    // 显示目标数量
+    document.getElementById('object-count').textContent = data.objects.length;
+    
+    // 显示结果图片
+    document.getElementById('preview-image').src = data.result_image;
+    
+    // 显示结果容器
+    document.getElementById('result-container').style.display = 'block';
+    
+    // 更新目标列表
+    const objectList = document.getElementById('object-list');
+    objectList.innerHTML = '';
+    
+    // 打印API返回的数据以进行调试
+    console.log('API返回数据:', data);
+    
+    data.objects.forEach((obj, index) => {
+        const item = document.createElement('div');
+        item.className = 'object-item';
+        
+        // 确认对象中存在坐标信息
+        const hasCoordinates = obj.x1 !== undefined && obj.y1 !== undefined && 
+                              obj.x2 !== undefined && obj.y2 !== undefined;
+        
+        // 计算物体尺寸（如果有坐标）
+        let width = 0, height = 0, area = 0;
+        if (hasCoordinates) {
+            width = obj.x2 - obj.x1;
+            height = obj.y2 - obj.y1;
+            area = width * height;
+        }
+        
+        // 直接显示坐标信息，不使用悬停效果
+        item.innerHTML = `
+            <div>
+                <i class="fas fa-trash-alt me-2 text-theme"></i>
+                <span class="fw-bold">${obj.label}</span>
+                ${hasCoordinates ? 
+                    `<div class="mt-1 small">
+                        <div class="text-muted">坐标: (${obj.x1},${obj.y1})-(${obj.x2},${obj.y2})</div>
+                        <div class="text-muted">尺寸: ${width}×${height}px (${area}px²)</div>
+                    </div>` : 
+                    ''}
+            </div>
+            <span class="badge bg-theme confidence-badge">
+                置信度：${obj.confidence.toFixed(1)}%
+            </span>
+        `;
+        
+        objectList.appendChild(item);
+    });
+    
+    // 不再需要添加坐标提示框交互
+}
+
+// 下载结果
+function downloadResult() {
+    const link = document.createElement('a');
+    link.href = document.getElementById('preview-image').src;
+    link.download = '检测结果.jpg';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+</script>
+{% endblock %} 
