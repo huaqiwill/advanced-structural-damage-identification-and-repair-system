@@ -1,4 +1,7 @@
-venv/
 __pycache__/
+venv/
 .idea/
+.vscode/
 .DS_Store
+*.log
+*.sql

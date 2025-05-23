@@ -1,3 +1,5 @@
+import traceback
+
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, Response, \
     send_from_directory
 from flask_socketio import SocketIO, emit
